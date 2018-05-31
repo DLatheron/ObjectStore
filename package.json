@@ -1,0 +1,34 @@
+{
+  "name": "object-store",
+  "version": "1.0.0",
+  "description": "General-purpose object store.",
+  "main": "server.js",
+  "scripts": {
+    "test": "mocha test",
+    "test-with-coverage": "./node_modules/nyc/bin/nyc.js --reporter=text mocha test --recursive",
+    "test-with-lcov": "./node_modules/nyc/bin/nyc.js --reporter=lcov --reporter=text mocha test --recursive"
+  },
+  "keywords": [
+    "object",
+    "store"
+  ],
+  "author": "David Latheron",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "consola": "^1.4.1",
+    "express": "^4.16.3",
+    "lodash": "^4.17.10",
+    "nconf": "^0.10.0",
+    "padleft": "^0.2.0",
+    "uuid": "^3.2.1",
+    "yargs": "^11.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "mocha": "^5.2.0",
+    "nyc": "^11.8.0",
+    "proxyquire": "^2.0.1",
+    "sinon": "^5.0.10"
+  }
+}

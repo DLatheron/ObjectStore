@@ -1,0 +1,25 @@
+{
+    "predef": [
+        "require",
+        "myGlobalVar2"
+    ],
+    "-W030": true,
+    "curly": true,
+    "camelcase": true,
+    "eqeqeq": true,
+    "forin": true,
+    "immed": true,
+    "indent": 4,
+    "latedef": true,
+    "newcap": true,
+    "nonew": true,
+    "quotmark": "single",
+    "undef": true,
+    "unused": "vars",
+    "trailing": true,
+    "maxdepth": 3,
+    "jquery": true,
+    "phantom": true,
+    "node": true,
+    "esversion": 6
+}
