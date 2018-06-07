@@ -5,6 +5,7 @@ const assert = require('assert');
 const consola = require('consola');
 const sinon = require('sinon');
 
+const ObjectDetails = require('../src/ObjectDetails');
 const UnitTestHelper = require('./helpers/UnitTestHelper');
 
 describe('#Object', () => {
@@ -126,6 +127,96 @@ describe('#Object', () => {
             sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject());
 
             assert.strictEqual(await object.saveContent('', 1), false);
+        });
+    });
+
+    describe('#buildDetailsPath', () => {
+        beforeEach(() => {
+            object = new Object('./basePath/');
+        });
+
+        it('should build a path for details', () => {
+            assert.strictEqual(object.buildDetailsPath(), './basePath/details.json');
+        });
+    });
+
+    describe('#readDetails', () => {
+        let readFilePromise;
+
+        beforeEach(() => {
+            object = new Object('./basePath/');
+            readFilePromise = UnitTestHelper.createPromise();
+        });
+
+        it('should attempt to read the file', () => {
+            sandbox.mock(object)
+                .expects('readFile')
+                .withExactArgs(
+                    './basePath/details.json'
+                )
+                .once()
+                .returns(readFilePromise.fulfill());
+
+            return object.readDetails()
+                .then(() => {
+                    sandbox.verify();
+                });
+        });
+
+        it('should return the details if the read succeeds', async () => {
+            sandbox.stub(object, 'readFile').returns(readFilePromise.fulfill('{}'));
+
+            assert(await object.readDetails() instanceof ObjectDetails, 'Not an ObjectDetails');
+        });
+
+        it('should return false if the read fails', async () => {
+            sandbox.stub(object, 'readFile').returns(readFilePromise.reject());
+
+            assert.strictEqual(await object.readDetails(), false);
+        });
+
+        it('should return false if the read fails because the file contents are not JSON', async () => {
+            sandbox.stub(object, 'readFile').returns(readFilePromise.fulfill(''));
+
+            assert.strictEqual(await object.readDetails(), false);
+        });
+    });
+
+    describe('#writeDetails', () => {
+        let writeFilePromise;
+
+        beforeEach(() => {
+            object = new Object('./basePath/');
+            writeFilePromise = UnitTestHelper.createPromise();
+        });
+
+        it('should attempt to write the file as JSON with a utf8 encoding', () => {
+            sandbox.mock(object)
+                .expects('writeFile')
+                .withExactArgs(
+                    './basePath/details.json',
+                    '{\n    "latestVersion": 11\n}',
+                    'utf8'
+                )
+                .once()
+                .returns(writeFilePromise.fulfill());
+
+            return object.writeDetails({ latestVersion: 11 })
+                .then(() => {
+                    sandbox.verify();
+                });
+        });
+
+        it('should return the true if the write succeeds', async () => {
+            sandbox.stub(object, 'writeFile').returns(writeFilePromise.fulfill());
+
+            assert.strictEqual(await object.writeDetails(), true);
+        });
+
+        it('should return false if the write fails', async () => {
+            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject());
+
+            assert.strictEqual(await object.writeDetails(), false);
         });
     });
 });

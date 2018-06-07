@@ -7,13 +7,22 @@ const { promisify } = require('util');
 
 require('padleft');
 
+const ObjectDetails = require('./ObjectDetails');
+
 const padding = 6;
 const paddingCh = '0';
 
 class Object {
     constructor(basePath) {
         this.basePath = basePath;
+
+        // TODO: Only generate once - but this will break tests.
         this.writeFile = promisify(fs.writeFile);
+        this.readFile = promisify(fs.readFile);
+
+        this.details = {
+            latestVersion: 0
+        };
     }
 
     buildMetadataPath(version) {
@@ -48,6 +57,36 @@ class Object {
             return true;
         } catch (error) {
             logger.error(`Unable to create directory '${filePath}' because of '${error}'`);
+            return false;
+        }
+    }
+
+    buildDetailsPath() {
+        return this.basePath + 'details.json';
+    }
+
+    async readDetails() {
+        const detailsPath = this.buildDetailsPath();
+
+        try {
+            const contents = await this.readFile(detailsPath);
+            const jsonContents = JSON.parse(contents);
+
+            return new ObjectDetails(jsonContents);
+        } catch (error) {
+            logger.error(`Unable to read file '${detailsPath}' because of '${error}'`);
+            return false;
+        }
+    }
+
+    async writeDetails(details) {
+        const detailsPath = this.buildDetailsPath();
+
+        try {
+            await this.writeFile(detailsPath, JSON.stringify(details, null, 4), 'utf8');
+            return true;
+        } catch (error) {
+            logger.error(`Unable to write file '${detailsPath}' because of ${error}'`);
             return false;
         }
     }
