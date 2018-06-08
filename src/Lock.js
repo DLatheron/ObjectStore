@@ -10,6 +10,7 @@ const DEFAULT_OPTIONS = {
     staleTimeout: 10 * 60 * 60 * 1000, // milliseconds,
     reentrant: false
 };
+const lockAlreadyAcquired = 'alreadyAcquired';
 
 function validateLock(lock) {
     if (!(lock instanceof Lock)) {
@@ -22,33 +23,29 @@ function validateLocks(locks) {
 }
 
 async function AcquireLock(lock, startTime, options) {
-    try {
-        const result = await lock._tryToLock();
-        if (result === 'alreadyAcquired') {
-            return options.reentrant;
-        }
-
-        lock.fileHandle = result;
-
-        if (!lock.fileHandle) {
-            do {
-                // TODO: Improve.
-                await lock.asyncWaitForTimeout(options.retryInterval);
-
-                const elapsedTime = Date.now() - startTime;
-                if (elapsedTime > options.waitTimeout) {
-                    return false;
-                }
-
-                lock.fileHandle = await lock._tryToLock();
-            }
-            while (!lock.fileHandle);
-        }
-
-        return true;
-    } catch (error) {
-        return false;
+    const result = await lock._tryToLock();
+    if (result === lockAlreadyAcquired) {
+        return options.reentrant;
     }
+
+    lock.fileHandle = result;
+
+    if (!lock.fileHandle) {
+        do {
+            // TODO: Improve.
+            await lock.asyncWaitForTimeout(options.retryInterval);
+
+            const elapsedTime = Date.now() - startTime;
+            if (elapsedTime > options.waitTimeout) {
+                return false;
+            }
+
+            lock.fileHandle = await lock._tryToLock();
+        }
+        while (!lock.fileHandle);
+    }
+
+    return true;
 }
 
 async function AcquireSingle(lock) {
@@ -71,22 +68,16 @@ async function AcquireMultiple(locks) {
     return true;
 }
 
-function ReleaseLock(lock) {
-    try {
-        if (lock.fileHandle) {
-            lock.closeFile(lock.fileHandle);
-            lock.fileHandle = null;
-        }
-    } catch (error) {
-        return;
-    }
+async function ReleaseSingle(lock) {
+    return lock._unlock();
 }
 
-function ReleaseSingle(lock) {
-    return ReleaseLock(lock);
-}
-function ReleaseMultiple(locks) {
-    return locks.forEach(lock => ReleaseLock(lock));
+async function ReleaseMultiple(locks) {
+    for (let i = 0; i < locks.length; i++) {
+        const lock = locks[i];
+
+        await lock._unlock();
+    }
 }
 
 class Lock {
@@ -97,17 +88,29 @@ class Lock {
 
         this.asyncOpenFile = promisify(fs.open);
         this.asyncWaitForTimeout = promisify(setTimeout);
-        this.closeFile = fs.close;
+        this.closeFile = promisify(fs.close);
     }
 
     async _tryToLock() {
         try {
             if (this.fileHandle) {
-                return 'alreadyAcquired';
+                return lockAlreadyAcquired;
             }
 
             return await this.asyncOpenFile(this.lockFilePath, 'wx+');
         } catch (error) {
+            return;
+        }
+    }
+
+    async _unlock() {
+        try {
+            if (this.fileHandle) {
+                await this.closeFile(this.fileHandle);
+                this.fileHandle = null;
+            }
+        } catch (error) {
+            this.fileHandle = null;
             return;
         }
     }

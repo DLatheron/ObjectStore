@@ -193,7 +193,130 @@ describe('#Lock', () => {
         });
     });
 
-    describe('#unlock', () => {
+    describe('#Release', () => {
+        context('single lock', () => {
+            let lock;
 
+            beforeEach(() => {
+                lock = new Lock('./releaseTest/');
+                sinon.stub(lock, 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
+            });
+
+            it('should throw an Error if the passed instance is not a Lock', async () => {
+                try {
+                    await Lock.Release({});
+                    assert.fail();
+                } catch (error) {
+                    assert.deepStrictEqual(error, new Error('Not a lock'));
+                }
+            });
+
+            it('should catch any error thrown by unlocking', async () => {
+                lock.fileHandle = fakeOpenFileHandle;
+                sinon.stub(lock, 'closeFile').returns(UnitTestHelper.createPromise().reject());
+
+                await Lock.Release(lock);
+
+                assert.strictEqual(lock.fileHandle, null);
+            });
+
+            it('should not error if the lock has not been acquired', async () => {
+                await Lock.Release(lock);
+
+                assert.strictEqual(lock.fileHandle, null);
+            });
+
+            it('should release the lock if it has been acquired', async () => {
+                lock.fileHandle = fakeOpenFileHandle;
+                sinon.stub(lock, 'closeFile').returns(UnitTestHelper.createPromise().fulfill());
+
+                await Lock.Release(lock);
+
+                assert.strictEqual(lock.fileHandle, null);
+            });
+        });
+
+        context('multiple locks', () => {
+            let locks;
+
+            beforeEach(() => {
+                locks = [
+                    new Lock('./multipleReleaseTest_1/'),
+                    new Lock('./multipleReleaseTest_2/'),
+                    new Lock('./multipleReleaseTest_3/')
+                ];
+            });
+
+            it('should throw an Error if the any of the passed instances are not a Lock', async () => {
+                try {
+                    await Lock.Release([
+                        new Lock(),
+                        {},
+                        new Lock()
+                    ]);
+                    assert.fail();
+                } catch (error) {
+                    assert.deepStrictEqual(error, new Error('Not a lock'));
+                }
+            });
+
+            it('should attempt to release the each locks', async () => {
+                locks.forEach((lock, index) => {
+                    lock.fileHandle = fakeOpenFileHandle;
+
+                    sinon.mock(locks[index])
+                        .expects('closeFile')
+                        .withExactArgs(fakeOpenFileHandle)
+                        .once();
+                });
+
+                await Lock.Release(locks);
+
+                sandbox.verify();
+            });
+
+            it('should attempt to release the locks in order', async () => {
+                let expectedIndex = 0;
+
+                locks.forEach((lock, index) => {
+                    lock.fileHandle = fakeOpenFileHandle;
+
+                    sinon.stub(locks[index], 'closeFile').callsFake(() => {
+                        assert.strictEqual(index, expectedIndex);
+                        expectedIndex++;
+                    });
+                });
+
+                await Lock.Release(locks);
+
+                assert.strictEqual(expectedIndex, locks.length);
+            });
+
+            it('should not attempt to release the locks that are not acquired', async () => {
+                locks[0].fileHandle = fakeOpenFileHandle;
+                sinon.stub(locks[0], 'closeFile');
+                sinon.mock(locks[1])
+                    .expects('closeFile')
+                    .never();
+                locks[2].fileHandle = fakeOpenFileHandle;
+                sinon.stub(locks[2], 'closeFile');
+
+                await Lock.Release(locks);
+
+                sandbox.verify();
+            });
+
+        //     it('should fail the locking if any given lock cannot be acquire', async () => {
+        //         sinon.stub(locks[0], 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
+        //         sinon.stub(locks[1], 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
+        //         sinon.stub(locks[2], 'asyncOpenFile').returns(UnitTestHelper.createPromise().reject());
+        //         sinon.stub(locks[2], 'asyncWaitForTimeout').callsFake(() => {
+        //             clock.tick(1001);
+        //             return UnitTestHelper.createPromise().fulfill();
+        //         });
+
+        //         assert.strictEqual(await Lock.Acquire(locks), false);
+        //     });
+        });
     });
 });
