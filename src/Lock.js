@@ -8,7 +8,8 @@ const DEFAULT_OPTIONS = {
     retryInterval: 100, // milliseconds
     waitTimeout: 1000, // milliseconds
     staleTimeout: 10 * 60 * 60 * 1000, // milliseconds,
-    reentrant: false
+    reentrant: false,
+    lockFilename: '.lockFile'
 };
 const lockAlreadyAcquired = 'alreadyAcquired';
 
@@ -82,8 +83,8 @@ async function ReleaseMultiple(locks) {
 
 class Lock {
     constructor(basePath = './', options = {}) {
-        this.lockFilePath = basePath + '.lockFile';
         this.options = _.merge({}, DEFAULT_OPTIONS, options);
+        this.lockFilePath = basePath + this.options.lockFilename;
         this.fileHandle = null;
 
         this.asyncOpenFile = promisify(fs.open);

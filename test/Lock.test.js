@@ -33,12 +33,21 @@ describe('#Lock', () => {
             assert.strictEqual(lock.lockFilePath, './subdir/path/.lockFile');
         });
 
+        it('should generate the name of the lock file if overridden', () => {
+            const lock = new Lock('./subdir/path/', {
+                lockFilename: '.newLockFile'
+            });
+
+            assert.strictEqual(lock.lockFilePath, './subdir/path/.newLockFile');
+        });
+
         context('options', () => {
             [
                 { optionName: 'retryInterval', defaultValue: 100, overriddenValue: 200 },
                 { optionName: 'waitTimeout', defaultValue: 1000, overriddenValue: 5000 },
                 { optionName: 'staleTimeout', defaultValue: 10 * 60 * 60 * 1000, overriddenValue: 5 * 60 * 60 },
-                { optionName: 'reentrant', defaultValue: false, overriddenValue: true }
+                { optionName: 'reentrant', defaultValue: false, overriddenValue: true },
+                { optionName: 'lockFilename', defaultValue: '.lockFile', overriddenValue: '.newLockFile' }
             ]
                 .forEach(({ optionName, defaultValue, overriddenValue}) => {
                     it(`should default '${optionName}' = ${defaultValue} as type ${typeof defaultValue}`, () =>{
