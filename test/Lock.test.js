@@ -33,7 +33,32 @@ describe('#Lock', () => {
             assert.strictEqual(lock.lockFilePath, './subdir/path/.lockFile');
         });
 
-        it('should merge the options');
+        context('options', () => {
+            [
+                { optionName: 'retryInterval', defaultValue: 100, overriddenValue: 200 },
+                { optionName: 'waitTimeout', defaultValue: 1000, overriddenValue: 5000 },
+                { optionName: 'staleTimeout', defaultValue: 10 * 60 * 60 * 1000, overriddenValue: 5 * 60 * 60 },
+                { optionName: 'reentrant', defaultValue: false, overriddenValue: true }
+            ]
+                .forEach(({ optionName, defaultValue, overriddenValue}) => {
+                    it(`should default '${optionName}' = ${defaultValue} as type ${typeof defaultValue}`, () =>{
+                        const lock = new Lock();
+
+                        assert.strictEqual(lock.options[optionName], defaultValue);
+                    });
+
+                    it('should merge the options', () => {
+                        it(`should all '${optionName}' to be overridden to ${overriddenValue}`, () => {
+                            const lock = new Lock('.', {
+                                [optionName]: overriddenValue
+                            });
+
+                            assert.strictEqual(lock.options[optionName], overriddenValue);
+                        });
+                    });
+                });
+        });
+
         it('should start with a closed file', () => {
             const lock = new Lock();
 
@@ -245,6 +270,8 @@ describe('#Lock', () => {
                     new Lock('./multipleReleaseTest_2/'),
                     new Lock('./multipleReleaseTest_3/')
                 ];
+
+                locks.forEach(lock => lock.fileHandle = fakeOpenFileHandle);
             });
 
             it('should throw an Error if the any of the passed instances are not a Lock', async () => {
@@ -262,8 +289,6 @@ describe('#Lock', () => {
 
             it('should attempt to release the each locks', async () => {
                 locks.forEach((lock, index) => {
-                    lock.fileHandle = fakeOpenFileHandle;
-
                     sinon.mock(locks[index])
                         .expects('closeFile')
                         .withExactArgs(fakeOpenFileHandle)
@@ -279,8 +304,6 @@ describe('#Lock', () => {
                 let expectedIndex = 0;
 
                 locks.forEach((lock, index) => {
-                    lock.fileHandle = fakeOpenFileHandle;
-
                     sinon.stub(locks[index], 'closeFile').callsFake(() => {
                         assert.strictEqual(index, expectedIndex);
                         expectedIndex++;
@@ -293,12 +316,11 @@ describe('#Lock', () => {
             });
 
             it('should not attempt to release the locks that are not acquired', async () => {
-                locks[0].fileHandle = fakeOpenFileHandle;
+                locks[1].fileHandle = null;
                 sinon.stub(locks[0], 'closeFile');
                 sinon.mock(locks[1])
                     .expects('closeFile')
                     .never();
-                locks[2].fileHandle = fakeOpenFileHandle;
                 sinon.stub(locks[2], 'closeFile');
 
                 await Lock.Release(locks);
@@ -306,17 +328,18 @@ describe('#Lock', () => {
                 sandbox.verify();
             });
 
-        //     it('should fail the locking if any given lock cannot be acquire', async () => {
-        //         sinon.stub(locks[0], 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
-        //         sinon.stub(locks[1], 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
-        //         sinon.stub(locks[2], 'asyncOpenFile').returns(UnitTestHelper.createPromise().reject());
-        //         sinon.stub(locks[2], 'asyncWaitForTimeout').callsFake(() => {
-        //             clock.tick(1001);
-        //             return UnitTestHelper.createPromise().fulfill();
-        //         });
+            it('should unlock all locks, even if a previous one fails', async () => {
+                sinon.stub(locks[0], 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill());
+                sinon.stub(locks[1], 'asyncOpenFile').returns(UnitTestHelper.createPromise().reject());
+                sinon.mock(locks[2])
+                    .expects('asyncOpenFile')
+                    .once()
+                    .returns(UnitTestHelper.createPromise().fulfill());
 
-        //         assert.strictEqual(await Lock.Acquire(locks), false);
-        //     });
+                await Lock.Release(locks);
+
+                sandbox.verify();
+            });
         });
     });
 });
