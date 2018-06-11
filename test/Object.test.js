@@ -3,8 +3,10 @@
 
 const assert = require('assert');
 const consola = require('consola');
+const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 
+const { FakeLock, lockExpectations } = require('./helpers/FakeLock');
 const ObjectDetails = require('../src/ObjectDetails');
 const UnitTestHelper = require('./helpers/UnitTestHelper');
 
@@ -16,7 +18,9 @@ describe('#Object', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
 
-        Object = require('../src/Object');
+        Object = proxyquire('../src/Object', {
+            './Lock': FakeLock
+        });
 
         consola.clear();
     });
@@ -50,6 +54,8 @@ describe('#Object', () => {
         });
 
         it('should attempt to write a file', () => {
+            lockExpectations.setSimpleExpectations();
+
             sandbox.mock(object)
                 .expects('writeFile')
                 .withExactArgs(
@@ -66,13 +72,17 @@ describe('#Object', () => {
         });
 
         it('should return true if the write succeeds', async () => {
+            lockExpectations.setSimpleExpectations();
+
             sandbox.stub(object, 'writeFile').returns(writeFilePromise.fulfill());
 
             assert.strictEqual(await object.saveMetadata('', 1), true);
         });
 
         it('should return false if the write fails', async () => {
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject());
+            lockExpectations.setSimpleExpectations();
+
+            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
 
             assert.strictEqual(await object.saveMetadata('', 1), false);
         });
@@ -124,7 +134,7 @@ describe('#Object', () => {
         });
 
         it('should return false if the write fails', async () => {
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject());
+            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
 
             assert.strictEqual(await object.saveContent('', 1), false);
         });
@@ -155,7 +165,7 @@ describe('#Object', () => {
                     './basePath/details.json'
                 )
                 .once()
-                .returns(readFilePromise.fulfill());
+                .returns(readFilePromise.fulfill(JSON.stringify({})));
 
             return object.readDetails()
                 .then(() => {
@@ -170,7 +180,7 @@ describe('#Object', () => {
         });
 
         it('should return false if the read fails', async () => {
-            sandbox.stub(object, 'readFile').returns(readFilePromise.reject());
+            sandbox.stub(object, 'readFile').returns(readFilePromise.reject('Test generated error'));
 
             assert.strictEqual(await object.readDetails(), false);
         });
@@ -214,7 +224,7 @@ describe('#Object', () => {
         });
 
         it('should return false if the write fails', async () => {
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject());
+            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
 
             assert.strictEqual(await object.writeDetails(), false);
         });

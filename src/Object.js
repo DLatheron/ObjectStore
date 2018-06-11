@@ -7,6 +7,7 @@ const { promisify } = require('util');
 
 require('padleft');
 
+const Lock = require('./Lock');
 const ObjectDetails = require('./ObjectDetails');
 
 const padding = 6;
@@ -15,6 +16,7 @@ const paddingCh = '0';
 class Object {
     constructor(basePath) {
         this.basePath = basePath;
+        this.lock = new Lock(this.basePath);
 
         // TODO: Only generate once - but this will break tests.
         this.writeFile = promisify(fs.writeFile);
@@ -32,15 +34,19 @@ class Object {
 
     async saveMetadata(metadata, version) {
         const filePath = this.buildMetadataPath(version);
+        let success = true;
 
         try {
+            await Lock.Acquire(this.lock);
             await this.writeFile(filePath, metadata);
-
-            return true;
         } catch (error) {
-            logger.error(`Unable to create directory '${filePath}' because of '${error}'`);
-            return false;
+            logger.error(`Unable to create file '${filePath}' because of '${error}'`);
+            success = false;
         }
+
+        await Lock.Release(this.lock);
+
+        return success;
     }
 
     buildContentPath(version) {
@@ -86,7 +92,7 @@ class Object {
             await this.writeFile(detailsPath, JSON.stringify(details, null, 4), 'utf8');
             return true;
         } catch (error) {
-            logger.error(`Unable to write file '${detailsPath}' because of ${error}'`);
+            logger.error(`Unable to write file '${detailsPath}' because of '${error}'`);
             return false;
         }
     }
