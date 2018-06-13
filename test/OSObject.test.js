@@ -12,13 +12,13 @@ const UnitTestHelper = require('./helpers/UnitTestHelper');
 
 describe('#Object', () => {
     let sandbox;
-    let Object;
-    let object;
+    let OSObject;
+    let osObject;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
 
-        Object = proxyquire('../src/Object', {
+        OSObject = proxyquire('../src/OSObject', {
             './Lock': FakeLock
         });
 
@@ -32,7 +32,7 @@ describe('#Object', () => {
 
     describe('#buildMetadataPath', () => {
         beforeEach(() => {
-            object = new Object('./basePath/');
+            osObject = new OSObject('objectId', './basePath/');
         });
 
         [
@@ -40,7 +40,7 @@ describe('#Object', () => {
         ]
             .forEach(({ version, expectedPath }) => {
                 it(`should build a path for version ${version} of the metadata as ${expectedPath}`, () => {
-                    assert.strictEqual(object.buildMetadataPath(version), expectedPath);
+                    assert.strictEqual(osObject.buildMetadataPath(version), expectedPath);
                 });
             });
     });
@@ -49,14 +49,14 @@ describe('#Object', () => {
         let writeFilePromise;
 
         beforeEach(() => {
-            object = new Object('./basePath/');
+            osObject = new OSObject('objectId', './basePath/');
             writeFilePromise = UnitTestHelper.createPromise();
         });
 
         it('should attempt to write a file', () => {
             lockExpectations.setSimpleExpectations();
 
-            sandbox.mock(object)
+            sandbox.mock(osObject)
                 .expects('writeFile')
                 .withExactArgs(
                     './basePath/metadata.v000123.json',
@@ -65,7 +65,7 @@ describe('#Object', () => {
                 .once()
                 .returns(writeFilePromise.fulfill());
 
-            return object.saveMetadata('fileContent', 123)
+            return osObject.saveMetadata('fileContent', 123)
                 .then(() => {
                     sandbox.verify();
                 });
@@ -74,23 +74,23 @@ describe('#Object', () => {
         it('should return true if the write succeeds', async () => {
             lockExpectations.setSimpleExpectations();
 
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.fulfill());
+            sandbox.stub(osObject, 'writeFile').returns(writeFilePromise.fulfill());
 
-            assert.strictEqual(await object.saveMetadata('', 1), true);
+            assert.strictEqual(await osObject.saveMetadata('', 1), true);
         });
 
         it('should return false if the write fails', async () => {
             lockExpectations.setSimpleExpectations();
 
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
+            sandbox.stub(osObject, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
 
-            assert.strictEqual(await object.saveMetadata('', 1), false);
+            assert.strictEqual(await osObject.saveMetadata('', 1), false);
         });
     });
 
     describe('#buildContentPath', () => {
         beforeEach(() => {
-            object = new Object('./basePath/');
+            osObject = new OSObject('objectId', './basePath/');
         });
 
         [
@@ -98,7 +98,7 @@ describe('#Object', () => {
         ]
             .forEach(({ version, expectedPath }) => {
                 it(`should build a path for version ${version} of the metadata as ${expectedPath}`, () => {
-                    assert.strictEqual(object.buildContentPath(version), expectedPath);
+                    assert.strictEqual(osObject.buildContentPath(version), expectedPath);
                 });
             });
     });
@@ -107,12 +107,12 @@ describe('#Object', () => {
         let writeFilePromise;
 
         beforeEach(() => {
-            object = new Object('./basePath/');
+            osObject = new OSObject('objectId', './basePath/');
             writeFilePromise = UnitTestHelper.createPromise();
         });
 
         it('should attempt to write a file', () => {
-            sandbox.mock(object)
+            sandbox.mock(osObject)
                 .expects('writeFile')
                 .withExactArgs(
                     './basePath/metadata.v000123.json',
@@ -121,32 +121,32 @@ describe('#Object', () => {
                 .once()
                 .returns(writeFilePromise.fulfill());
 
-            return object.saveContent('fileContent', 123)
+            return osObject.saveContent('fileContent', 123)
                 .then(() => {
                     sandbox.verify();
                 });
         });
 
         it('should return true if the write succeeds', async () => {
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.fulfill());
+            sandbox.stub(osObject, 'writeFile').returns(writeFilePromise.fulfill());
 
-            assert.strictEqual(await object.saveContent('', 1), true);
+            assert.strictEqual(await osObject.saveContent('', 1), true);
         });
 
         it('should return false if the write fails', async () => {
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
+            sandbox.stub(osObject, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
 
-            assert.strictEqual(await object.saveContent('', 1), false);
+            assert.strictEqual(await osObject.saveContent('', 1), false);
         });
     });
 
     describe('#buildDetailsPath', () => {
         beforeEach(() => {
-            object = new Object('./basePath/');
+            osObject = new OSObject('objectId', './basePath/');
         });
 
         it('should build a path for details', () => {
-            assert.strictEqual(object.buildDetailsPath(), './basePath/details.json');
+            assert.strictEqual(osObject.buildDetailsPath(), './basePath/details.json');
         });
     });
 
@@ -154,12 +154,12 @@ describe('#Object', () => {
         let readFilePromise;
 
         beforeEach(() => {
-            object = new Object('./basePath/');
+            osObject = new OSObject('objectId', './basePath/');
             readFilePromise = UnitTestHelper.createPromise();
         });
 
         it('should attempt to read the file', () => {
-            sandbox.mock(object)
+            sandbox.mock(osObject)
                 .expects('readFile')
                 .withExactArgs(
                     './basePath/details.json'
@@ -167,28 +167,28 @@ describe('#Object', () => {
                 .once()
                 .returns(readFilePromise.fulfill(JSON.stringify({})));
 
-            return object.readDetails()
+            return osObject.readDetails()
                 .then(() => {
                     sandbox.verify();
                 });
         });
 
         it('should return the details if the read succeeds', async () => {
-            sandbox.stub(object, 'readFile').returns(readFilePromise.fulfill('{}'));
+            sandbox.stub(osObject, 'readFile').returns(readFilePromise.fulfill('{}'));
 
-            assert(await object.readDetails() instanceof ObjectDetails, 'Not an ObjectDetails');
+            assert(await osObject.readDetails() instanceof ObjectDetails, 'Not an ObjectDetails');
         });
 
         it('should return false if the read fails', async () => {
-            sandbox.stub(object, 'readFile').returns(readFilePromise.reject('Test generated error'));
+            sandbox.stub(osObject, 'readFile').returns(readFilePromise.reject('Test generated error'));
 
-            assert.strictEqual(await object.readDetails(), false);
+            assert.strictEqual(await osObject.readDetails(), false);
         });
 
         it('should return false if the read fails because the file contents are not JSON', async () => {
-            sandbox.stub(object, 'readFile').returns(readFilePromise.fulfill(''));
+            sandbox.stub(osObject, 'readFile').returns(readFilePromise.fulfill(''));
 
-            assert.strictEqual(await object.readDetails(), false);
+            assert.strictEqual(await osObject.readDetails(), false);
         });
     });
 
@@ -196,12 +196,12 @@ describe('#Object', () => {
         let writeFilePromise;
 
         beforeEach(() => {
-            object = new Object('./basePath/');
+            osObject = new OSObject('objectId', './basePath/');
             writeFilePromise = UnitTestHelper.createPromise();
         });
 
         it('should attempt to write the file as JSON with a utf8 encoding', () => {
-            sandbox.mock(object)
+            sandbox.mock(osObject)
                 .expects('writeFile')
                 .withExactArgs(
                     './basePath/details.json',
@@ -211,22 +211,22 @@ describe('#Object', () => {
                 .once()
                 .returns(writeFilePromise.fulfill());
 
-            return object.writeDetails({ latestVersion: 11 })
+            return osObject.writeDetails({ latestVersion: 11 })
                 .then(() => {
                     sandbox.verify();
                 });
         });
 
         it('should return the true if the write succeeds', async () => {
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.fulfill());
+            sandbox.stub(osObject, 'writeFile').returns(writeFilePromise.fulfill());
 
-            assert.strictEqual(await object.writeDetails(), true);
+            assert.strictEqual(await osObject.writeDetails(), true);
         });
 
         it('should return false if the write fails', async () => {
-            sandbox.stub(object, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
+            sandbox.stub(osObject, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
 
-            assert.strictEqual(await object.writeDetails(), false);
+            assert.strictEqual(await osObject.writeDetails(), false);
         });
     });
 });

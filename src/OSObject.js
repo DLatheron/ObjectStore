@@ -13,8 +13,9 @@ const ObjectDetails = require('./ObjectDetails');
 const padding = 6;
 const paddingCh = '0';
 
-class Object {
-    constructor(basePath) {
+class OSObject {
+    constructor(objectId, basePath) {
+        this.objectId = objectId;
         this.basePath = basePath;
         this.lock = new Lock(this.basePath);
 
@@ -114,4 +115,4 @@ class Object {
     // - Set metadata version OR do we version metadata???
 }
 
-module.exports = Object;
+module.exports = OSObject;

@@ -1,13 +1,10 @@
 'use strict';
 
 const consola = require('consola');
-const fs = require('fs');
-const logger = consola.withScope('Store');
-const { promisify } = require('util');
-const uuid = require('uuid/v4');
+const logger = consola.withScope('StoreManager');
 const _ = require('lodash');
 
-const Object = require('./Object');
+const OSBase = require('./OSBase');
 const Store = require('./Store');
 
 const DEFAULT_OPTIONS = {
@@ -17,29 +14,11 @@ const DEFAULT_OPTIONS = {
     storeBasePath: './Stores/'
 };
 
-class StoreManager {
+class StoreManager extends OSBase {
     constructor(options) {
+        super();
+
         this.options = _.merge({}, DEFAULT_OPTIONS, options);
-
-        this.mkdir = promisify(fs.mkdir);
-    }
-
-    generateId() {
-        return uuid();
-    }
-
-    uuidToPath(uuid, hierarchy, pathSeparator) {
-        const uuidStr = uuid.toString();
-        const uuidStrNoDashes = uuidStr.replace('-', '');
-        let uuidLeft = uuidStrNoDashes;
-
-        const keys = hierarchy.map(keyLength => {
-            const key = uuidLeft.slice(0, keyLength);
-            uuidLeft = uuidLeft.slice(keyLength);
-            return key;
-        });
-
-        return keys.join(pathSeparator) + pathSeparator;
     }
 
     buildStorePath(storeId) {
@@ -48,39 +27,51 @@ class StoreManager {
             this.options.pathSeparator;
     }
 
-    buildObjectPath(objectId) {
-        return this.uuidToPath(objectId, this.options.objectHierarchy, this.options.pathSeparator) +
-            objectId +
-            this.options.pathSeparator;
-    }
-
-    buildPath(storeId, objectId) {
-        return this.buildStorePath(storeId) + this.buildObjectPath(objectId);
-    }
-
-    async getOrCreateStore(storeId) {
+    async createStore() {
+        const storeId = this.generateId();
         const storePath = this.options.storeBasePath + this.buildStorePath(storeId);
 
         try {
-            await this.mkdir(storePath);
-
-            return new Store(storePath);
+            if (this.createDirectory(storePath)) {
+                return new Store(storeId, storePath, this.options);
+            }
         } catch (error) {
             logger.error(`Unable to create directory '${storePath}' because of '${error}'`);
         }
     }
 
-    async getOrCreateObject(storeId, objectId) {
-        const fullPath = this.options.storeBasePath + this.buildPath(storeId, objectId);
+    async getStore(storeId) {
+        const storePath = this.options.storeBasePath + this.buildStorePath(storeId);
 
-        try {
-            await this.mkdir(fullPath);
-
-            return new Object(fullPath);
-        } catch (error) {
-            logger.error(`Unable to create directory '${fullPath}' becaise of '${error}'`);
+        if (this.directoryExists(storePath)) {
+            return new Store(storeId, storePath, this.options);
         }
     }
+
+    // async createObject(storeId) {
+    //     const objectId = this.generateId();
+    //     const fullPath = this.options.storeBasePath + this.buildPath(storeId, objectId);
+
+    //     try {
+    //         await this.mkdirp(fullPath);
+
+    //         return new Object(objectId, fullPath);
+    //     } catch (error) {
+    //         logger.error(`Unable to create directory '${fullPath}' becaise of '${error}'`);
+    //     }
+    // }
+
+    // async getOrCreateObject(storeId, objectId) {
+    //     const fullPath = this.options.storeBasePath + this.buildPath(storeId, objectId);
+
+    //     try {
+    //         await this.mkdirp(fullPath);
+
+    //         return new Object(fullPath);
+    //     } catch (error) {
+    //         logger.error(`Unable to create directory '${fullPath}' becaise of '${error}'`);
+    //     }
+    // }
 }
 
 module.exports = StoreManager;
