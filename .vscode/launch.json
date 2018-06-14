@@ -20,7 +20,7 @@
                 "-u", "tdd",
                 "--timeout", "999999",
                 "--colors",
-                "${workspaceRoot}/test",
+                "${workspaceRoot}/test/",
                 "--recursive"
             ],
             "internalConsoleOptions": "openOnSessionStart",

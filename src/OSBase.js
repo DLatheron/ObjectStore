@@ -4,9 +4,10 @@ const { promisify } = require('util');
 
 const consola = require('consola');
 const exists = promisify(require('fs').exists);
-const logger = consola.withScope('OSBase');
 const mkdirp = promisify(require('mkdirp'));
 const uuid = require('uuid/v4');
+
+const logger = consola.withScope('OSBase');
 
 class OSBase {
     constructor() {
@@ -21,7 +22,7 @@ class OSBase {
             await mkdirp(path);
             return true;
         } catch (error) {
-            logger.crit(`Failed to create directory "${path}" because of ${error}`);
+            logger.fatal(`Failed to create directory "${path}" because of ${error}`);
             return false;
         }
     }

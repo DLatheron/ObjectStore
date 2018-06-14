@@ -39,22 +39,21 @@ describe('#StoreManager', () => {
                 .once()
                 .returns(true);
 
-            return storeManager.createStore('storeId')
-                .then(() => {
-                    sandbox.verify();
-                });
+            storeManager.createStore('storeId');
+
+            sandbox.verify();
         });
 
-        it('should return a Store class if store creation succeeds', async () => {
+        it('should return a Store class if store creation succeeds', () => {
             sandbox.stub(storeManager, 'createDirectory').returns(true);
 
-            assert(await storeManager.createStore('storeId') instanceof Store, 'Not a Store');
+            assert(storeManager.createStore('storeId') instanceof Store, 'Not a Store');
         });
 
-        it('should return undefined if store creation fails', async () => {
+        it('should return undefined if store creation fails', () => {
             sandbox.stub(storeManager, 'createDirectory').returns(false);
 
-            assert.strictEqual(await storeManager.createStore('storeId'), undefined);
+            assert.strictEqual(storeManager.createStore('storeId'), undefined);
         });
     });
 

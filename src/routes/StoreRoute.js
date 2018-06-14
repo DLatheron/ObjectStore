@@ -21,10 +21,10 @@ class StoreRoute {
         );
     }
 
-    async createStore(_, response) {
+    createStore(_, response) {
         // TODO: Check that we are able to create a store - by validating a pass token.
 
-        const store = await this.storeManager.createStore();
+        const store = this.storeManager.createStore();
         if (store) {
             const results = {
                 storeId: store.storeId

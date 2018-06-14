@@ -1,26 +1,38 @@
 /* globals describe, it, beforeEach, afterEach */
 'use strict';
 
+const { promisify } = require('util');
+
 const assert = require('assert');
 const consola = require('consola');
+const exists = promisify(require('fs').exists);
+const logger = consola.withScope('OSBase');
 const proxyquire = require('proxyquire');
+const mkdirp = promisify(require('mkdirp'));
 const sinon = require('sinon');
 const uuid = require('uuid/v4');
 
+// const UnitTestHelper = require('./helpers/UnitTestHelper');
+
 describe('#OSBase', () => {
     let sandbox;
-    let uuidWrapper;
+    let wrapper;
     let OSBase;
     let osBase;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        uuidWrapper = {
-            uuid
+        wrapper = {
+            uuid,
+            mkdirp,
+            exists
         };
 
         OSBase = proxyquire('../src/OSBase', {
-            'uuid/v4': function() { return uuidWrapper.uuid(); }
+            'consola': { withScope: () => logger },
+            'fs': { exists: function() { return wrapper.exists(...arguments); } },
+            'mkdirp': function() { return wrapper.mkdirp(...arguments); },
+            'uuid/v4': function() { return wrapper.uuid(...arguments); },
         });
 
         consola.clear();
@@ -40,7 +52,7 @@ describe('#OSBase', () => {
         });
 
         it('should generate a v4 uuid', () => {
-            sandbox.mock(uuidWrapper)
+            sandbox.mock(wrapper)
                 .expects('uuid')
                 .withExactArgs()
                 .once();
@@ -52,16 +64,88 @@ describe('#OSBase', () => {
 
         it('should return the generated uuid', () => {
             const expectedId = '123e4567-e89b-12d3-a456-426655440000';
-            sandbox.stub(uuidWrapper, 'uuid').returns(expectedId);
+            sandbox.stub(wrapper, 'uuid').returns(expectedId);
 
             assert.strictEqual(osBase.generateId(), expectedId);
         });
     });
 
     describe('#createDirectory', () => {
-        it('should call "mkdirp" with the path');
-        it('should return true if directories are successfully created');
-        it('should return false if directory creation fails');
+        beforeEach(() => {
+            osBase = new OSBase();
+        });
+
+        it('should call "mkdirp" with the path', async () => {
+            sandbox.mock(wrapper)
+                .expects('mkdirp')
+                .withExactArgs(
+                    './expected/path/',
+                    sinon.match.func
+                )
+                .once()
+                .yields();
+
+            await osBase.createDirectory('./expected/path/');
+
+            sandbox.verify();
+        });
+
+        it('should return true if directories are successfully created', async () => {
+            sandbox.stub(wrapper, 'mkdirp').yields();
+
+            assert.strictEqual(await osBase.createDirectory('./expected/path/'), true);
+        });
+
+        it('should return false if directory creation fails', async () => {
+            sandbox.stub(wrapper, 'mkdirp').yields('Error');
+
+            assert.strictEqual(await osBase.createDirectory('./expected/path/'), false);
+        });
+
+        it('should log a fatal error if directory creation fails', async () => {
+            sandbox.stub(wrapper, 'mkdirp').yields('Error');
+            sandbox.mock(logger)
+                .expects('fatal')
+                .withExactArgs('Failed to create directory "./expected/path/" because of Error')
+                .once();
+
+            await osBase.createDirectory('./expected/path/');
+
+            sandbox.verify();
+        });
+    });
+
+    describe('#directoryExists', () => {
+        beforeEach(() => {
+            osBase = new OSBase();
+        });
+
+        it('should call "exists" with the path', async () => {
+            sandbox.mock(wrapper)
+                .expects('exists')
+                .withExactArgs(
+                    './expected/path/',
+                    sinon.match.func
+                )
+                .once()
+                .yields();
+
+            await osBase.directoryExists('./expected/path/');
+
+            sandbox.verify();
+        });
+
+        it('should return true if the directories exist', async () => {
+            sandbox.stub(wrapper, 'exists').yields();
+
+            assert.strictEqual(await osBase.directoryExists('./expected/path'), true);
+        });
+
+        it('should return false if any of the directories do not exist', async () => {
+            sandbox.stub(wrapper, 'exists').yields('Error');
+
+            assert.strictEqual(await osBase.directoryExists('./expected/path'), false);
+        });
     });
 
     describe('#uuidToPath', () => {

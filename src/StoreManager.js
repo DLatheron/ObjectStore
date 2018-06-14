@@ -1,7 +1,5 @@
 'use strict';
 
-const consola = require('consola');
-const logger = consola.withScope('StoreManager');
 const _ = require('lodash');
 
 const OSBase = require('./OSBase');
@@ -27,20 +25,16 @@ class StoreManager extends OSBase {
             this.options.pathSeparator;
     }
 
-    async createStore() {
+    createStore() {
         const storeId = this.generateId();
         const storePath = this.options.storeBasePath + this.buildStorePath(storeId);
 
-        try {
-            if (this.createDirectory(storePath)) {
-                return new Store(storeId, storePath, this.options);
-            }
-        } catch (error) {
-            logger.error(`Unable to create directory '${storePath}' because of '${error}'`);
+        if (this.createDirectory(storePath)) {
+            return new Store(storeId, storePath, this.options);
         }
     }
 
-    async getStore(storeId) {
+    getStore(storeId) {
         const storePath = this.options.storeBasePath + this.buildStorePath(storeId);
 
         if (this.directoryExists(storePath)) {

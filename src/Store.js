@@ -1,7 +1,5 @@
 'use strict';
 
-const consola = require('consola');
-const logger = consola.withScope('Store');
 const _ = require('lodash');
 
 const OSBase = require('./OSBase');
@@ -27,16 +25,12 @@ class Store extends OSBase {
             this.options.pathSeparator;
     }
 
-    async createObject() {
+    createObject() {
         const objectId = this.generateId();
         const fullPath = this.basePath + this.buildObjectPath(objectId);
 
-        try {
-            if (this.createDirectory(fullPath)) {
-                return new OSObject(objectId, fullPath);
-            }
-        } catch (error) {
-            logger.error(`Unable to create directory '${fullPath}' because of '${error}'`);
+        if (this.createDirectory(fullPath)) {
+            return new OSObject(objectId, fullPath);
         }
     }
 

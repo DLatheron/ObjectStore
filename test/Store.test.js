@@ -47,25 +47,24 @@ describe('#Store', () => {
                 .once()
                 .returns(true);
 
-            return store.createObject()
-                .then(() => {
-                    sandbox.verify();
-                });
+            store.createObject();
+
+            sandbox.verify();
         });
 
-        it('should return a Object class if object creation succeeds', async () => {
+        it('should return a Object class if object creation succeeds', () => {
             sandbox.stub(store, 'createDirectory').returns(true);
 
-            const object = await store.createObject();
+            const object = store.createObject();
 
             assert(object instanceof OSObject, 'Incorrect type returned');
             assert.strictEqual(object.objectId, 'objectId');
         });
 
-        it('should return undefined if the object does not exist', async () => {
+        it('should return undefined if the object does not exist', () => {
             sandbox.stub(store, 'createDirectory').returns(false);
 
-            assert.strictEqual(await store.createObject(), undefined);
+            assert.strictEqual(store.createObject(), undefined);
         });
     });
 
