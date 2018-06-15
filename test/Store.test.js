@@ -2,19 +2,31 @@
 'use strict';
 
 const assert = require('assert');
+const proxyquire = require('proxyquire');
 const sinon = require('sinon');
-
-const OSObject = require('../src/OSObject');
 
 describe('#Store', () => {
     let sandbox;
+    let fakeOSObject;
+    let wrapper;
     let Store;
     let store;
 
-
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        Store = require('../src/Store');
+        fakeOSObject = {
+            readDetails: () => true,
+            writeDetails: () => true
+        };
+        wrapper = {
+            fakeOSObject: () => fakeOSObject
+        };
+
+        Store = proxyquire('../src/Store', {
+            './OSObject': function() {
+                return wrapper.fakeOSObject(...arguments);
+            }
+        });
     });
 
     afterEach(() => {
@@ -52,13 +64,12 @@ describe('#Store', () => {
             sandbox.verify();
         });
 
-        it('should return a Object class if object creation succeeds', () => {
+        it('should return an OSObject if object creation succeeds', () => {
             sandbox.stub(store, 'createDirectory').returns(true);
 
-            const object = store.createObject();
+            const osObject = store.createObject();
 
-            assert(object instanceof OSObject, 'Incorrect type returned');
-            assert.strictEqual(object.objectId, 'objectId');
+            assert.strictEqual(osObject, fakeOSObject);
         });
 
         it('should return undefined if the object does not exist', () => {
@@ -79,19 +90,22 @@ describe('#Store', () => {
             sandbox.stub(store, 'generateId').returns('objectId');
         });
 
-        it('should return an object if it exists', async () => {
+        it('should return an object if it exists', () => {
             sandbox.stub(store, 'directoryExists').returns(true);
 
-            const osObject = await store.getObject('objectId');
+            const osObject = store.getObject('objectId');
 
-            assert(osObject instanceof OSObject, 'Incorrect type returned');
-            assert.strictEqual(osObject.objectId, 'objectId');
+            assert.strictEqual(osObject, fakeOSObject);
         });
 
-        it('should return undefined if the object does not exist', async () => {
+        it('should return undefined if the object does not exist', () => {
             sandbox.stub(store, 'directoryExists').returns(false);
 
-            assert.strictEqual(await store.getObject('objectId'), undefined);
+            assert.strictEqual(store.getObject('objectId'), undefined);
         });
+    });
+
+    describe('#updateObject', () => {
+
     });
 });

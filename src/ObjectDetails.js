@@ -1,7 +1,7 @@
 'use strict';
 
 class ObjectDetails {
-    constructor({ latestVersion = 0 }) {
+    constructor({ latestVersion = 0 } = {}) {
         this.latestVersion = latestVersion;
     }
 

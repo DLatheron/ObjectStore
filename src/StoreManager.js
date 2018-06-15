@@ -25,19 +25,19 @@ class StoreManager extends OSBase {
             this.options.pathSeparator;
     }
 
-    createStore() {
+    async createStore() {
         const storeId = this.generateId();
         const storePath = this.options.storeBasePath + this.buildStorePath(storeId);
 
-        if (this.createDirectory(storePath)) {
+        if (await this.createDirectory(storePath)) {
             return new Store(storeId, storePath, this.options);
         }
     }
 
-    getStore(storeId) {
+    async getStore(storeId) {
         const storePath = this.options.storeBasePath + this.buildStorePath(storeId);
 
-        if (this.directoryExists(storePath)) {
+        if (await this.directoryExists(storePath)) {
             return new Store(storeId, storePath, this.options);
         }
     }

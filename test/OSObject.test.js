@@ -211,7 +211,9 @@ describe('#Object', () => {
                 .once()
                 .returns(writeFilePromise.fulfill());
 
-            return osObject.writeDetails({ latestVersion: 11 })
+            osObject.details = { latestVersion: 11 };
+
+            return osObject.writeDetails()
                 .then(() => {
                     sandbox.verify();
                 });

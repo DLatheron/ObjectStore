@@ -4,6 +4,7 @@ const _ = require('lodash');
 
 const OSBase = require('./OSBase');
 const OSObject = require('./OSObject');
+const OSObjectDetails = require('./ObjectDetails');
 
 const DEFAULT_OPTIONS = {
     objectHierarchy: [3, 3],
@@ -25,20 +26,29 @@ class Store extends OSBase {
             this.options.pathSeparator;
     }
 
-    createObject() {
+    async createObject() {
         const objectId = this.generateId();
         const fullPath = this.basePath + this.buildObjectPath(objectId);
 
-        if (this.createDirectory(fullPath)) {
-            return new OSObject(objectId, fullPath);
+        if (await this.createDirectory(fullPath)) {
+            const osObject = new OSObject(objectId, fullPath);
+
+            osObject.details = new OSObjectDetails();
+            if (await osObject.writeDetails()) {
+                return osObject;
+            }
         }
     }
 
-    getObject(objectId) {
+    async getObject(objectId) {
         const fullPath = this.basePath + this.buildObjectPath(objectId);
 
-        if (this.directoryExists(fullPath)) {
-            return new OSObject(objectId, fullPath);
+        if (await this.directoryExists(fullPath)) {
+            const osObject = new OSObject(objectId, fullPath);
+
+            if (await osObject.readDetails()) {
+                return osObject;
+            }
         }
     }
 

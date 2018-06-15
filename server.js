@@ -2,6 +2,7 @@
 
 const argv = require('yargs').argv;
 const bodyParser = require('body-parser');
+const busboy = require('connect-busboy');
 const express = require('express');
 const logger = require('consola');
 const nconf = require('nconf');
@@ -15,6 +16,7 @@ nconf.argv().env()
     });
 
 app.use(bodyParser.json());
+app.use(busboy());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const port = argv.port || nconf.get('port');

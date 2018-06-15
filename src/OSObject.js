@@ -22,6 +22,7 @@ class OSObject {
         // TODO: Only generate once - but this will break tests.
         this.writeFile = promisify(fs.writeFile);
         this.readFile = promisify(fs.readFile);
+        this.details = null;
 
         this.details = {
             latestVersion: 0
@@ -79,23 +80,50 @@ class OSObject {
             const contents = await this.readFile(detailsPath);
             const jsonContents = JSON.parse(contents);
 
-            return new ObjectDetails(jsonContents);
+            this.details = new ObjectDetails(jsonContents);
+
+            return this.details;
         } catch (error) {
             logger.error(`Unable to read file '${detailsPath}' because of '${error}'`);
             return false;
         }
     }
 
-    async writeDetails(details) {
+    async writeDetails() {
         const detailsPath = this.buildDetailsPath();
 
         try {
-            await this.writeFile(detailsPath, JSON.stringify(details, null, 4), 'utf8');
+            await this.writeFile(detailsPath, JSON.stringify(this.details, null, 4), 'utf8');
             return true;
         } catch (error) {
             logger.error(`Unable to write file '${detailsPath}' because of '${error}'`);
             return false;
         }
+    }
+
+    async updateObject(incomingStream) {
+        // TODO: Lock the file.
+        await Lock.Acquire(this.lock);
+
+        const details = await this.readDetails();
+        details.latestVersion++;
+
+        const filename = this.basePath + details.latestVersion.toString() + '.bin';
+
+        // TODO: Update the contents.
+        const newVersionStream = fs.createWriteStream(filename);
+        incomingStream.pipe(newVersionStream);
+
+        return new Promise((resolve, reject) => {
+            newVersionStream.on('close', () => {
+                resolve('end');
+            });
+            newVersionStream.on('error', (error) => {
+                reject(error);
+            });
+        }).then(() => {
+            return this.writeDetails(details);
+        });
     }
 
     // saveContent(content, version) {
