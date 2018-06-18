@@ -52,30 +52,30 @@ describe('#Store', () => {
             sandbox.stub(store, 'generateId').returns('objectId');
         });
 
-        it('should attempt to create a directory for the object', () => {
+        it('should attempt to create a directory for the object', async () => {
             sandbox.mock(store)
                 .expects('createDirectory')
                 .withExactArgs('./Stores/store/Id/storeId/object/Id/objectId/')
                 .once()
                 .returns(true);
 
-            store.createObject();
+            await store.createObject();
 
             sandbox.verify();
         });
 
-        it('should return an OSObject if object creation succeeds', () => {
+        it('should return an OSObject if object creation succeeds', async () => {
             sandbox.stub(store, 'createDirectory').returns(true);
 
-            const osObject = store.createObject();
+            const osObject = await store.createObject();
 
             assert.strictEqual(osObject, fakeOSObject);
         });
 
-        it('should return undefined if the object does not exist', () => {
+        it('should return undefined if the object does not exist', async () => {
             sandbox.stub(store, 'createDirectory').returns(false);
 
-            assert.strictEqual(store.createObject(), undefined);
+            assert.strictEqual(await store.createObject(), undefined);
         });
     });
 
@@ -90,18 +90,18 @@ describe('#Store', () => {
             sandbox.stub(store, 'generateId').returns('objectId');
         });
 
-        it('should return an object if it exists', () => {
+        it('should return an object if it exists', async () => {
             sandbox.stub(store, 'directoryExists').returns(true);
 
-            const osObject = store.getObject('objectId');
+            const osObject = await store.getObject('objectId');
 
             assert.strictEqual(osObject, fakeOSObject);
         });
 
-        it('should return undefined if the object does not exist', () => {
+        it('should return undefined if the object does not exist', async () => {
             sandbox.stub(store, 'directoryExists').returns(false);
 
-            assert.strictEqual(store.getObject('objectId'), undefined);
+            assert.strictEqual(await store.getObject('objectId'), undefined);
         });
     });
 

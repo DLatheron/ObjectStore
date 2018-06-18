@@ -32,28 +32,28 @@ describe('#StoreManager', () => {
             sandbox.stub(storeManager, 'generateId').returns('storeId');
         });
 
-        it('should attempt to create a store', () => {
+        it('should attempt to create a store', async () => {
             sandbox.mock(storeManager)
                 .expects('createDirectory')
                 .withExactArgs('./Stores/store/Id/storeId/')
                 .once()
                 .returns(true);
 
-            storeManager.createStore('storeId');
+            await storeManager.createStore('storeId');
 
             sandbox.verify();
         });
 
-        it('should return a Store class if store creation succeeds', () => {
+        it('should return a Store class if store creation succeeds', async () => {
             sandbox.stub(storeManager, 'createDirectory').returns(true);
 
-            assert(storeManager.createStore('storeId') instanceof Store, 'Not a Store');
+            assert(await storeManager.createStore('storeId') instanceof Store, 'Not a Store');
         });
 
-        it('should return undefined if store creation fails', () => {
+        it('should return undefined if store creation fails', async () => {
             sandbox.stub(storeManager, 'createDirectory').returns(false);
 
-            assert.strictEqual(storeManager.createStore('storeId'), undefined);
+            assert.strictEqual(await storeManager.createStore('storeId'), undefined);
         });
     });
 
