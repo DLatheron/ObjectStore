@@ -9,12 +9,18 @@ const uuid = require('uuid/v4');
 
 const logger = consola.withScope('OSBase');
 
+const idRegex = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
+
 class OSBase {
     constructor() {
     }
 
     generateId() {
         return uuid();
+    }
+
+    static IsValidId(id) {
+        return id.match(idRegex);
     }
 
     async createDirectory(path) {

@@ -15,8 +15,8 @@ describe('#Store', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         fakeOSObject = {
-            readDetails: () => true,
-            writeDetails: () => true
+            _readDetails: () => true,
+            _writeDetails: () => true
         };
         wrapper = {
             fakeOSObject: () => fakeOSObject

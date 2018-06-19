@@ -150,7 +150,7 @@ describe('#Object', () => {
         });
     });
 
-    describe('#readDetails', () => {
+    describe('#_readDetails', () => {
         let readFilePromise;
 
         beforeEach(() => {
@@ -167,7 +167,7 @@ describe('#Object', () => {
                 .once()
                 .returns(readFilePromise.fulfill(JSON.stringify({})));
 
-            return osObject.readDetails()
+            return osObject._readDetails()
                 .then(() => {
                     sandbox.verify();
                 });
@@ -176,23 +176,23 @@ describe('#Object', () => {
         it('should return the details if the read succeeds', async () => {
             sandbox.stub(osObject, 'readFile').returns(readFilePromise.fulfill('{}'));
 
-            assert(await osObject.readDetails() instanceof ObjectDetails, 'Not an ObjectDetails');
+            assert(await osObject._readDetails() instanceof ObjectDetails, 'Not an ObjectDetails');
         });
 
         it('should return false if the read fails', async () => {
             sandbox.stub(osObject, 'readFile').returns(readFilePromise.reject('Test generated error'));
 
-            assert.strictEqual(await osObject.readDetails(), false);
+            assert.strictEqual(await osObject._readDetails(), false);
         });
 
         it('should return false if the read fails because the file contents are not JSON', async () => {
             sandbox.stub(osObject, 'readFile').returns(readFilePromise.fulfill(''));
 
-            assert.strictEqual(await osObject.readDetails(), false);
+            assert.strictEqual(await osObject._readDetails(), false);
         });
     });
 
-    describe('#writeDetails', () => {
+    describe('#_writeDetails', () => {
         let writeFilePromise;
 
         beforeEach(() => {
@@ -213,7 +213,7 @@ describe('#Object', () => {
 
             osObject.details = { latestVersion: 11 };
 
-            return osObject.writeDetails()
+            return osObject._writeDetails()
                 .then(() => {
                     sandbox.verify();
                 });
@@ -222,13 +222,17 @@ describe('#Object', () => {
         it('should return the true if the write succeeds', async () => {
             sandbox.stub(osObject, 'writeFile').returns(writeFilePromise.fulfill());
 
-            assert.strictEqual(await osObject.writeDetails(), true);
+            assert.strictEqual(await osObject._writeDetails(), true);
         });
 
-        it('should return false if the write fails', async () => {
+        it('should throw an error if the write fails', async () => {
             sandbox.stub(osObject, 'writeFile').returns(writeFilePromise.reject('Test generated error'));
 
-            assert.strictEqual(await osObject.writeDetails(), false);
+            try {
+                await osObject._writeDetails();
+            } catch (error) {
+                assert.strictEqual(error, 'Test generated error');
+            }
         });
     });
 });

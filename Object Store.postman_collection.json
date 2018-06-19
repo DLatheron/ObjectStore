@@ -1,0 +1,172 @@
+{
+	"info": {
+		"_postman_id": "8bcb5245-93e3-4c65-bce4-e210281d5d9c",
+		"name": "Object Store",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Store",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "http://localhost:4000/store/create",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"store",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Object Empty Object",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept-Encoding",
+						"value": "application/json"
+					}
+				],
+				"body": {},
+				"url": {
+					"raw": "http://localhost:4000/object/640c2a06-0d4e-495a-97f9-6ef192f16efa/create",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"object",
+						"640c2a06-0d4e-495a-97f9-6ef192f16efa",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Object Full Object",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept-Encoding",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "metadata",
+							"value": "{\"filename\":\"package.json\", \"created\":\"2018-06-18T15:58:00.000Z\"}",
+							"type": "text",
+							"description": ""
+						},
+						{
+							"key": "file",
+							"description": "",
+							"type": "file"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:4000/object/640c2a06-0d4e-495a-97f9-6ef192f16efa/create",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"object",
+						"640c2a06-0d4e-495a-97f9-6ef192f16efa",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Object",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept-Encoding",
+						"value": "application/json"
+					}
+				],
+				"body": {},
+				"url": {
+					"raw": "http://localhost:4000/object/640c2a06-0d4e-495a-97f9-6ef192f16efa/bb18019f-960a-4ad6-b06a-f874a6c6473b",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"object",
+						"640c2a06-0d4e-495a-97f9-6ef192f16efa",
+						"bb18019f-960a-4ad6-b06a-f874a6c6473b"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Object",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"description": "",
+							"type": "file"
+						},
+						{
+							"key": "metadata",
+							"value": "{ \"filename\": \"hello world\" }",
+							"description": "",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:4000/object/640c2a06-0d4e-495a-97f9-6ef192f16efa/d2b6d039-c8d2-4028-8fde-3315fe47c327",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"object",
+						"640c2a06-0d4e-495a-97f9-6ef192f16efa",
+						"d2b6d039-c8d2-4028-8fde-3315fe47c327"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

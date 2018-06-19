@@ -34,7 +34,7 @@ class Store extends OSBase {
             const osObject = new OSObject(objectId, fullPath);
 
             osObject.details = new OSObjectDetails();
-            if (await osObject.writeDetails()) {
+            if (await osObject._writeDetails()) {
                 return osObject;
             }
         }
@@ -46,7 +46,7 @@ class Store extends OSBase {
         if (await this.directoryExists(fullPath)) {
             const osObject = new OSObject(objectId, fullPath);
 
-            if (await osObject.readDetails()) {
+            if (await osObject._readDetails()) {
                 return osObject;
             }
         }

@@ -23,10 +23,6 @@ class OSObject {
         this.writeFile = promisify(fs.writeFile);
         this.readFile = promisify(fs.readFile);
         this.details = null;
-
-        this.details = {
-            latestVersion: 0
-        };
     }
 
     buildMetadataPath(version) {
@@ -73,7 +69,7 @@ class OSObject {
         return this.basePath + 'details.json';
     }
 
-    async readDetails() {
+    async _readDetails() {
         const detailsPath = this.buildDetailsPath();
 
         try {
@@ -89,52 +85,58 @@ class OSObject {
         }
     }
 
-    async writeDetails() {
+    async _writeDetails() {
         const detailsPath = this.buildDetailsPath();
 
-        try {
-            await this.writeFile(detailsPath, JSON.stringify(this.details, null, 4), 'utf8');
-            return true;
-        } catch (error) {
-            logger.error(`Unable to write file '${detailsPath}' because of '${error}'`);
-            return false;
+        await this.writeFile(detailsPath, JSON.stringify(this.details, null, 4), 'utf8');
+        return true;
+    }
+
+    _updateContent(version, incomingStream) {
+        if (incomingStream) {
+            return new Promise((resolve, reject) => {
+                const contentFilename = this.basePath + version.toString() + '.bin';
+                const newVersionStream = fs.createWriteStream(contentFilename);
+                incomingStream.pipe(newVersionStream);
+
+                // Write the contents from the stream.
+                newVersionStream.on('close', () => {
+                    resolve('end');
+                });
+                newVersionStream.on('error', (error) => {
+                    reject(error);
+                });
+            });
+        }
+    }
+
+    async _updateMetadata(version, metadata) {
+        if (metadata) {
+            const metadataFilename = this.basePath + version.toString() + '.json';
+
+            await this.writeFile(metadataFilename, JSON.stringify(metadata, null, 4));
         }
     }
 
     async updateObject(incomingStream, metadata) {
-        incomingStream = incomingStream || fs.createReadStream();
-        metadata = metadata || {};
+        try {
+            await Lock.Acquire(this.lock);
 
-        // TODO: Lock the file.
-        await Lock.Acquire(this.lock);
+            const details = await this._readDetails();
+            details.latestVersion++;
 
-        const details = await this.readDetails();
-        details.latestVersion++;
+            await this._updateContent(details.latestVersion, incomingStream);
+            await this._updateMetadata(details.latestVersion, metadata);
+            await this._writeDetails(details);
+            await Lock.Release(this.lock);
 
-        const metadataFilename = this.basePath + details.latestVersion.toString() + '.json';
-        const contentFilename = this.basePath + details.latestVersion.toString() + '.bin';
-
-        const newVersionStream = fs.createWriteStream(contentFilename);
-        incomingStream.pipe(newVersionStream);
-
-        return new Promise((resolve, reject) => {
-            // Write the contents from the stream.
-            newVersionStream.on('close', () => {
-                resolve('end');
-            });
-            newVersionStream.on('error', (error) => {
-                reject(error);
-            });
-        }).then(() => {
-            // Write the metadata.
-            return this.writeFile(
-                metadataFilename,
-                JSON.stringify(metadata, null, 4)
-            );
-        }).then(() => {
-            // Write the updated details.
-            return this.writeDetails(details);
-        });
+            return {
+                latestVersion: details.latestVersion
+            };
+        } catch (error) {
+            await Lock.Release(this.lock);
+            return;
+        }
     }
 
     // saveContent(content, version) {
