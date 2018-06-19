@@ -35,7 +35,7 @@ class ObjectRoute {
         const storeId = request.params.storeId;
         // TODO: Validate request.
 
-        const store = this.storeManager.getStore(storeId);
+        const store = await this.storeManager.getStore(storeId);
         if (!store) {
             return response.status(HttpStatus.NOT_FOUND)
                 .status(`Store ${storeId} does not exist`);
@@ -47,9 +47,29 @@ class ObjectRoute {
                 .status('Failed to create object');
         }
 
-        return response.send({
+        const results = {
             objectId: osObject.objectId
+        };
+
+        let metadata;
+
+        request.busboy.on('field', function(fieldName, value, fieldNameTruncated, valueTruncated, encoding, mimeType) {
+            logger.log(`Field [${fieldName} ]: value: ${value}, encoding: ${encoding}, mimeType: ${mimeType}`);
+            try {
+                metadata = JSON.parse(value);
+            } catch (error) {
+                logger.error(`Recevied metadata is not valid JSON: ${value}`);
+            }
         });
+        request.busboy.on('file', async (fieldName, incomingStream, filename, encoding, mimeType) => {
+            logger.log(`File [${fieldName}]: filename: ${filename}, encoding: ${encoding}, mimetype: ${mimeType}`);
+
+            await osObject.updateObject(incomingStream, metadata);
+
+            return response.send(results);
+        });
+
+        request.pipe(request.busboy);
     }
 
     async getObject(request, response) {

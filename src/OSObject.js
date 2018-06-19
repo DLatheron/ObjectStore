@@ -101,20 +101,24 @@ class OSObject {
         }
     }
 
-    async updateObject(incomingStream) {
+    async updateObject(incomingStream, metadata) {
+        incomingStream = incomingStream || fs.createReadStream();
+        metadata = metadata || {};
+
         // TODO: Lock the file.
         await Lock.Acquire(this.lock);
 
         const details = await this.readDetails();
         details.latestVersion++;
 
-        const filename = this.basePath + details.latestVersion.toString() + '.bin';
+        const metadataFilename = this.basePath + details.latestVersion.toString() + '.json';
+        const contentFilename = this.basePath + details.latestVersion.toString() + '.bin';
 
-        // TODO: Update the contents.
-        const newVersionStream = fs.createWriteStream(filename);
+        const newVersionStream = fs.createWriteStream(contentFilename);
         incomingStream.pipe(newVersionStream);
 
         return new Promise((resolve, reject) => {
+            // Write the contents from the stream.
             newVersionStream.on('close', () => {
                 resolve('end');
             });
@@ -122,6 +126,13 @@ class OSObject {
                 reject(error);
             });
         }).then(() => {
+            // Write the metadata.
+            return this.writeFile(
+                metadataFilename,
+                JSON.stringify(metadata, null, 4)
+            );
+        }).then(() => {
+            // Write the updated details.
             return this.writeDetails(details);
         });
     }

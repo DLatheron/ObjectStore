@@ -16,8 +16,8 @@ nconf.argv().env()
     });
 
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(busboy());
-app.use(bodyParser.urlencoded({ extended: true }));
 
 const port = argv.port || nconf.get('port');
 

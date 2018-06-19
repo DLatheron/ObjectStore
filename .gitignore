@@ -2,3 +2,6 @@ node_modules/
 tmp/
 backup/
 .nyc_output/
+Stores/
+.DS_Store
+
