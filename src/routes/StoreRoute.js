@@ -1,5 +1,7 @@
 'use strict';
 
+const HttpStatus = require('http-status-codes');
+
 class StoreRoute {
     constructor({ app, storeManager }) {
         this.app = app;
@@ -21,26 +23,30 @@ class StoreRoute {
         );
     }
 
-    createStore(_, response) {
+    async createStore(_, response) {
         // TODO: Check that we are able to create a store - by validating a pass token.
 
-        const store = this.storeManager.createStore();
+        const store = await this.storeManager.createStore();
         if (store) {
             const results = {
                 storeId: store.storeId
             };
 
-            response.send(results);
+            response
+                .status(HttpStatus.OK)
+                .send(results);
         } else {
-            response.sendStatus('Failed to create store');
+            response
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .sendStatus('Failed to create store');
         }
     }
 
-    getStore(request, response) {
+    async getStore(request, response) {
         // TODO: Check that we are authorised.
         const storeId = request.params.storeId;
         // TODO: Validate request.
-        const store = this.storeManager.getStore(storeId);
+        const store = await this.storeManager.getStore(storeId);
         if (store) {
             const results = {
                 // TODO: Fill in some results.

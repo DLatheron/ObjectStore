@@ -20,7 +20,7 @@ class OSBase {
     }
 
     static IsValidId(id) {
-        return id.match(idRegex);
+        return !!id.match(idRegex);
     }
 
     async createDirectory(path) {

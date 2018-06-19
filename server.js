@@ -4,7 +4,6 @@ const argv = require('yargs').argv;
 const bodyParser = require('body-parser');
 const busboy = require('connect-busboy');
 const express = require('express');
-const logger = require('consola');
 const nconf = require('nconf');
 
 const app = express();
@@ -21,16 +20,7 @@ app.use(busboy());
 
 const port = argv.port || nconf.get('port');
 
-const StoreRoute = require('./src/routes/StoreRoute');
-const ObjectRoute = require('./src/routes/ObjectRoute');
-const StoreManager = require('./src/StoreManager');
+const RouteManager = require('./src/RouteManager');
+const routeManager = new RouteManager({ app, port });
 
-const storeManager = new StoreManager();
-const storeRoute = new StoreRoute({ app, storeManager });
-const objectRoute = new ObjectRoute({ app, storeManager });
-
-storeRoute.initRoute();
-objectRoute.initRoute();
-
-app.listen(port, '0.0.0.0', 10000);
-logger.start(`Object Store listening on port ${port}...`);
+routeManager.start();
