@@ -31,9 +31,10 @@ function initialise() {
             }
         });
 
-    consola.clear();
+    // consola.clear();
 
     const port = nconf.get('port');
+    consola.log(`Port is ${port}`);
 
     const app = express();
 

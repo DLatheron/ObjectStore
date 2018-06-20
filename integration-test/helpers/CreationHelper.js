@@ -12,8 +12,8 @@ async function createStore() {
             `http://localhost:${port}/store/create`,
             (error, response, body) => {
                 if (error) {
-                    logger.log('Error');
-                    return reject('Error');
+                    logger.log(`Error: ${error}`);
+                    return reject(error);
                 }
 
                 if (response.statusCode === 200) {
@@ -40,8 +40,8 @@ async function deleteStore(storeId) {
             `http://localhost:${port}/store/${storeId}`,
             (error, response, body) => {
                 if (error) {
-                    logger.log('Error');
-                    return reject('Error');
+                    logger.log(`Error: ${error}`);
+                    return reject(error);
                 }
 
                 if (response.statusCode === 200) {
@@ -69,8 +69,8 @@ async function createObject(storeId, stream, metadata) {
             }
         }, (error, response, body) => {
             if (error) {
-                logger.log('Error');
-                return reject('Error');
+                logger.log(`Error: ${error}`);
+                return reject(error);
             }
 
             if (response.statusCode === 200) {
