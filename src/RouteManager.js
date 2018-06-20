@@ -1,6 +1,8 @@
 'use strict';
 
 const logger = require('consola');
+const nconf = require('nconf');
+const _ = require('lodash');
 
 const StoreRoute = require('./routes/StoreRoute');
 const ObjectRoute = require('./routes/ObjectRoute');
@@ -11,7 +13,9 @@ class RouteManager {
         this.app = app;
         this.port = port;
 
-        const storeManager = new StoreManager();
+        const storeManagerConfig = _.get(nconf.get('storeManager'), 'config', {});
+
+        const storeManager = new StoreManager(storeManagerConfig);
         const storeRoute = new StoreRoute({ app, storeManager });
         const objectRoute = new ObjectRoute({ app, storeManager });
 

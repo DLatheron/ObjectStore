@@ -1,24 +1,17 @@
-/* globals describe, it, beforeEach */
+/* globals describe, it */
 'use strict';
 
 const assert = require('assert');
 const CreationHelper = require('./helpers/CreationHelper');
 const TestHelper = require('./helpers/TestHelper');
 
-describe('Object Creation', () => {
-    let storeId;
+describe('Store Creation', () => {
+    it('should create a new store', async () => {
+        const storeDetails = await CreationHelper.createStore();
+        const storeId = storeDetails.storeId;
 
-    beforeEach(async () => {
-        storeId = (await CreationHelper.createStore()).storeId;
-    });
-
-    it('should create a new object', async () => {
-        const objectDetails = await CreationHelper.createObject(storeId);
-        const objectId = objectDetails.objectId;
-
-        assert.strictEqual(TestHelper.isValidId(objectId), true);
-        // TODO: Object directory exists...
-        // TODO: Version of the object exists with the correct data...
+        assert.strictEqual(TestHelper.isValidId(storeId), true);
+        assert.strictEqual(await TestHelper.storeDirectoryExists(storeId), true);
     });
 
     // var req = request.post(url, function (err, resp, body) {

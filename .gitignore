@@ -4,4 +4,4 @@ backup/
 .nyc_output/
 Stores/
 .DS_Store
-
+.vscode/

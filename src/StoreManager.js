@@ -1,15 +1,20 @@
 'use strict';
 
-const _ = require('lodash');
+const { promisify } = require('util');
 
+const consola = require('consola');
+const fs = require('fs-extra');
 const OSBase = require('./OSBase');
 const Store = require('./Store');
+const _ = require('lodash');
+
+const logger = consola.withScope('StoreManager');
 
 const DEFAULT_OPTIONS = {
     storeHierarchy: [3, 3],
     objectHierarchy: [3, 3],
     pathSeparator: '/',
-    storeBasePath: './Stores/'
+    basePath: './Stores/'
 };
 
 class StoreManager extends OSBase {
@@ -17,6 +22,8 @@ class StoreManager extends OSBase {
         super();
 
         this.options = _.merge({}, DEFAULT_OPTIONS, options);
+
+        this.remove = promisify(fs.remove);
     }
 
     buildStorePath(storeId) {
@@ -27,7 +34,7 @@ class StoreManager extends OSBase {
 
     async createStore() {
         const storeId = this.generateId();
-        const storePath = this.options.storeBasePath + this.buildStorePath(storeId);
+        const storePath = this.options.basePath + this.buildStorePath(storeId);
 
         if (await this.createDirectory(storePath)) {
             return new Store(storeId, storePath, this.options);
@@ -35,37 +42,24 @@ class StoreManager extends OSBase {
     }
 
     async getStore(storeId) {
-        const storePath = this.options.storeBasePath + this.buildStorePath(storeId);
+        const storePath = this.options.basePath + this.buildStorePath(storeId);
 
         if (await this.directoryExists(storePath)) {
             return new Store(storeId, storePath, this.options);
         }
     }
 
-    // async createObject(storeId) {
-    //     const objectId = this.generateId();
-    //     const fullPath = this.options.storeBasePath + this.buildPath(storeId, objectId);
+    async deleteStore(storeId) {
+        const storePath = this.options.basePath + this.buildStorePath(storeId);
 
-    //     try {
-    //         await this.mkdirp(fullPath);
-
-    //         return new Object(objectId, fullPath);
-    //     } catch (error) {
-    //         logger.error(`Unable to create directory '${fullPath}' becaise of '${error}'`);
-    //     }
-    // }
-
-    // async getOrCreateObject(storeId, objectId) {
-    //     const fullPath = this.options.storeBasePath + this.buildPath(storeId, objectId);
-
-    //     try {
-    //         await this.mkdirp(fullPath);
-
-    //         return new Object(fullPath);
-    //     } catch (error) {
-    //         logger.error(`Unable to create directory '${fullPath}' becaise of '${error}'`);
-    //     }
-    // }
+        try {
+            await this.remove(storePath);
+            return true;
+        } catch (error) {
+            logger.error(`Failed to delete store ${storeId} because of ${error}`);
+            return false;
+        }
+    }
 }
 
 module.exports = StoreManager;
