@@ -1,5 +1,8 @@
 'use strict';
 
+const express = require('express');
+const bodyParser = require('body-parser');
+const busboy = require('connect-busboy');
 const logger = require('consola');
 const nconf = require('nconf');
 const _ = require('lodash');
@@ -9,7 +12,13 @@ const ObjectRoute = require('./routes/ObjectRoute');
 const StoreManager = require('./StoreManager');
 
 class RouteManager {
-    constructor({ app, port }) {
+    constructor({ port }) {
+        const app = express();
+
+        app.use(bodyParser.json());
+        app.use(bodyParser.urlencoded({ extended: false }));
+        app.use(busboy());
+
         this.app = app;
         this.port = port;
 

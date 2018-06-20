@@ -14,7 +14,8 @@ const padding = 6;
 const paddingCh = '0';
 
 class OSObject {
-    constructor(objectId, basePath) {
+    constructor(storeId, objectId, basePath) {
+        this.storeId = storeId;
         this.objectId = objectId;
         this.basePath = basePath;
         this.lock = new Lock(this.basePath);
@@ -95,7 +96,7 @@ class OSObject {
     _updateContent(version, incomingStream) {
         if (incomingStream) {
             return new Promise((resolve, reject) => {
-                const contentFilename = this.basePath + version.toString() + '.bin';
+                const contentFilename = this.buildContentPath(version);
                 const newVersionStream = fs.createWriteStream(contentFilename);
                 incomingStream.pipe(newVersionStream);
 
@@ -112,7 +113,7 @@ class OSObject {
 
     async _updateMetadata(version, metadata) {
         if (metadata) {
-            const metadataFilename = this.basePath + version.toString() + '.json';
+            const metadataFilename = this.buildMetadataPath(version);
 
             await this.writeFile(metadataFilename, JSON.stringify(metadata, null, 4));
         }
@@ -131,6 +132,8 @@ class OSObject {
             await Lock.Release(this.lock);
 
             return {
+                storeId: this.storeId,
+                objectId: this.objectId,
                 latestVersion: details.latestVersion
             };
         } catch (error) {

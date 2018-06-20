@@ -4,6 +4,7 @@
 const { promisify } = require('util');
 
 const bodyParser = require('body-parser');
+const consola = require('consola');
 const express = require('express');
 const fs = require('fs-extra');
 const nconf = require('nconf');
@@ -29,6 +30,8 @@ function initialise() {
                 }
             }
         });
+
+    consola.clear();
 
     const port = nconf.get('port');
 

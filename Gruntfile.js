@@ -28,6 +28,14 @@ module.exports = function(grunt) {
                     exit: true
                 }
             },
+            integrationTest: {
+                src: [grunt.option('integrationTest') || 'integration-test/**/*.js'],
+                options: {
+                    reporter: 'nyan',
+                    recursive: true,
+                    exit: true
+                }
+            },
             spec: {
                 src: [grunt.option('test') || 'test/**/*.js'],
                 options: {
@@ -40,8 +48,8 @@ module.exports = function(grunt) {
 
         watch: {
             test: {
-                files: ['Gruntfile.js', 'test/**/*.js', '*.js', 'src/**/*.js'],
-                tasks: ['test']
+                files: ['Gruntfile.js', 'integration-test/**/*.js', 'test/**/*.js', '*.js', 'src/**/*.js'],
+                tasks: ['test', 'integrationTest']
             },
             options: {
                 spawn: false
@@ -54,6 +62,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-jshint');
 
     grunt.registerTask('test', ['eslint', 'mochacli:test']);
+    grunt.registerTask('integrationTest', ['mochacli:integrationTest']);
 
     grunt.registerTask('build', function() {
         grunt.log.ok('Nothing to do here!');
@@ -70,6 +79,7 @@ module.exports = function(grunt) {
         });
         grunt.config('eslint.test.src', Object.keys(changedFiles));
         grunt.config('mochacli.test.src', testFiles);
+        grunt.config('mochacli.integrationTest.src', testFiles);
         changedFiles = Object.create(null);
     }, 200);
     grunt.event.on('watch', function(action, filepath) {

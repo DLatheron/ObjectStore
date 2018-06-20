@@ -32,7 +32,7 @@ describe('#Object', () => {
 
     describe('#buildMetadataPath', () => {
         beforeEach(() => {
-            osObject = new OSObject('objectId', './basePath/');
+            osObject = new OSObject('storeId', 'objectId', './basePath/');
         });
 
         [
@@ -49,7 +49,7 @@ describe('#Object', () => {
         let writeFilePromise;
 
         beforeEach(() => {
-            osObject = new OSObject('objectId', './basePath/');
+            osObject = new OSObject('storeId', 'objectId', './basePath/');
             writeFilePromise = UnitTestHelper.createPromise();
         });
 
@@ -90,7 +90,7 @@ describe('#Object', () => {
 
     describe('#buildContentPath', () => {
         beforeEach(() => {
-            osObject = new OSObject('objectId', './basePath/');
+            osObject = new OSObject('storeId', 'objectId', './basePath/');
         });
 
         [
@@ -107,7 +107,7 @@ describe('#Object', () => {
         let writeFilePromise;
 
         beforeEach(() => {
-            osObject = new OSObject('objectId', './basePath/');
+            osObject = new OSObject('storeId', 'objectId', './basePath/');
             writeFilePromise = UnitTestHelper.createPromise();
         });
 
@@ -142,7 +142,7 @@ describe('#Object', () => {
 
     describe('#buildDetailsPath', () => {
         beforeEach(() => {
-            osObject = new OSObject('objectId', './basePath/');
+            osObject = new OSObject('storeId', 'objectId', './basePath/');
         });
 
         it('should build a path for details', () => {
@@ -154,7 +154,7 @@ describe('#Object', () => {
         let readFilePromise;
 
         beforeEach(() => {
-            osObject = new OSObject('objectId', './basePath/');
+            osObject = new OSObject('storeId', 'objectId', './basePath/');
             readFilePromise = UnitTestHelper.createPromise();
         });
 
@@ -196,7 +196,7 @@ describe('#Object', () => {
         let writeFilePromise;
 
         beforeEach(() => {
-            osObject = new OSObject('objectId', './basePath/');
+            osObject = new OSObject('storeId', 'objectId', './basePath/');
             writeFilePromise = UnitTestHelper.createPromise();
         });
 

@@ -61,7 +61,7 @@ class ObjectRoute {
         }
 
         if (expectations.contentType) {
-            if (!_.get(request, 'headers.content-type').startsWith(expectations.contentType)) {
+            if (!_.get(request, 'headers.content-type', '').startsWith(expectations.contentType)) {
                 return {
                     status: HttpStatus.BAD_REQUEST,
                     reason: 'Expected multipart/form-data upload'
@@ -89,14 +89,18 @@ class ObjectRoute {
             });
             request.busboy.on('file', async (fieldName, incomingStream, filename, encoding, mimeType) => {
                 logger.log(`File [${fieldName}]: filename: ${filename}, encoding: ${encoding}, mimetype: ${mimeType}`);
-                if (fieldName === 'file') {
+                if (fieldName === 'content') {
                     const results = await osObject.updateObject(incomingStream, metadata);
 
                     resolve({
+                        storeId: osObject.storeId,
                         objectId: osObject.objectId,
                         latestVersion: results.latestVersion
                     });
                 }
+            });
+            request.busboy.on('finish', () => {
+                logger.log('Done');
             });
 
             request.pipe(request.busboy);
