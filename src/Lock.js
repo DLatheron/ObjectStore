@@ -90,6 +90,7 @@ class Lock {
         this.asyncOpenFile = promisify(fs.open);
         this.asyncWaitForTimeout = promisify(setTimeout);
         this.closeFile = promisify(fs.close);
+        this.deleteFile = promisify(fs.unlink);
     }
 
     async _tryToLock() {
@@ -107,6 +108,7 @@ class Lock {
     async _unlock() {
         try {
             if (this.fileHandle) {
+                await this.deleteFile(this.lockFilePath);
                 await this.closeFile(this.fileHandle);
                 this.fileHandle = null;
             }

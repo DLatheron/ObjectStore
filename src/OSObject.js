@@ -36,10 +36,12 @@ class OSObject {
         let success = true;
 
         try {
-            await Lock.Acquire(this.lock);
+            if (!await Lock.Acquire(this.lock)) {
+                throw new Error('Unable to lock file at this time - please try again');
+            }
             await this.writeFile(filePath, metadata);
         } catch (error) {
-            logger.error(`Unable to create file '${filePath}' because of '${error}'`);
+            logger.error(`Unable to create file '${filePath}' because: '${error}'`);
             success = false;
         }
 
@@ -61,7 +63,7 @@ class OSObject {
 
             return true;
         } catch (error) {
-            logger.error(`Unable to create directory '${filePath}' because of '${error}'`);
+            logger.error(`Unable to create directory '${filePath}' because: '${error}'`);
             return false;
         }
     }
@@ -81,7 +83,7 @@ class OSObject {
 
             return this.details;
         } catch (error) {
-            logger.error(`Unable to read file '${detailsPath}' because of '${error}'`);
+            logger.error(`Unable to read file '${detailsPath}' because: '${error}'`);
             return false;
         }
     }
@@ -121,7 +123,9 @@ class OSObject {
 
     async updateObject(incomingStream, metadata) {
         try {
-            await Lock.Acquire(this.lock);
+            if (!await Lock.Acquire(this.lock)) {
+                throw new Error('Unable to lock file at this time - please try again');
+            }
 
             const details = await this._readDetails();
             details.latestVersion++;

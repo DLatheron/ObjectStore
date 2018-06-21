@@ -112,9 +112,6 @@ class ObjectRoute {
         // Note:
         // - Metadata and content as always sent together - BUT both are optional
         //   and are replaced with {} or a zero-length file if not present.
-        global.console.log('start');
-        global.console.time('createObject');
-
         const validationFailure = this.validateRequest(request, {
             permissions: 'create',
             storeId: true,
@@ -139,9 +136,6 @@ class ObjectRoute {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .send('Failed to create object');
         }
-
-        global.console.log('end');
-        global.console.timeEnd('createObject');
 
         await this._streamContentAndMetadata(request, osObject)
             .then((result) => {
