@@ -31,7 +31,7 @@ module.exports = function(grunt) {
             integrationTest: {
                 src: [grunt.option('integrationTest') || 'integration-test/**/*.integration-test.js'],
                 options: {
-                    files: ['integration-test/Framework.js', 'test/**/*.js'],
+                    files: ['integration-test/Framework.js', 'integration-test/**/*.js'],
                     reporter: 'nyan',
                     recursive: true,
                     exit: true
@@ -50,11 +50,11 @@ module.exports = function(grunt) {
         watch: {
             test: {
                 files: ['Gruntfile.js', 'test/**/*.js', '*.js', 'src/**/*.js'],
-                tasks: ['test']
+                tasks: ['eslint', 'mochacli:test']
             },
             integrationTest: {
                 files: ['Gruntfile.js', 'integration-test/**/*.js', '*.js', 'src/**/*.js'],
-                tasks: ['integrationTest']
+                tasks: ['mochacli:integrationTest']
             },
             options: {
                 spawn: false
@@ -66,40 +66,38 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-jshint');
 
-    grunt.registerTask('test', ['eslint', 'mochacli:test']);
-    grunt.registerTask('integrationTest', ['mochacli:integrationTest']);
-
-    grunt.registerTask('build', function() {
-        grunt.log.ok('Nothing to do here!');
-    });
+    grunt.registerTask('test', ['eslint', 'mochacli:test', 'mochacli:integrationTest']);
+    // grunt.registerTask('integrationTest', ['mochacli:integrationTest']);
 
     let changedFiles = Object.create(null);
+    const isUnitTest = (filename) => {
+        return filename.endsWith('.test.js');
+    };
+    const isIntegrationTest = (filename) => {
+        return filename.endsWith('.integration-test.js');
+    };
     const onChange = grunt.util._.debounce(() => {
-        const allFiles = [];
+        const unitTestFiles = [];
+        const integrationTestFiles = [];
+
         Object.keys(changedFiles).forEach(changedFile => {
-            if (!changedFile.endsWith('.test.js') &&
-                !changedFile.includes('.integration-test.js')) {
-                allFiles.push(changedFile
+            if (!isUnitTest(changedFile) &&
+                !isIntegrationTest(changedFile)) {
+                unitTestFiles.push(changedFile
                     .replace('src', 'test')
-                    .replace('.js', '.test.js')
-                );
-                allFiles.push(changedFile
-                    .replace('src', 'integration-test')
-                    .replace('.js', '.integration-test.js')
-                );
-            } else {
-                allFiles.push(changedFile);
+                    .replace('.js', '.test.js'));
+            } else if (isUnitTest(changedFile)) {
+                unitTestFiles.push(changedFile);
+            } else if (isIntegrationTest(changedFile)) {
+                integrationTestFiles.push(changedFile);
             }
         });
 
-        const testFiles = allFiles.filter(file => file.includes('.test.js'));
-        const integrationTestFiles = allFiles.filter(file => file.includes('.integration-test.js'));
-        global.console.log('Test', testFiles);
-        global.console.log('Integration Test', integrationTestFiles);
-
+        // global.console.log('Test', unitTestFiles);
+        // global.console.log('Integration Test', integrationTestFiles);
 
         grunt.config('eslint.test.src', Object.keys(changedFiles));
-        grunt.config('mochacli.test.src', testFiles);
+        grunt.config('mochacli.test.src', unitTestFiles);
         grunt.config('mochacli.integrationTest.src', integrationTestFiles);
         changedFiles = Object.create(null);
     }, 200);
