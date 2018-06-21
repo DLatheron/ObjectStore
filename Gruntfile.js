@@ -16,6 +16,7 @@ module.exports = function(grunt) {
             options: {
                 require: [],
                 reporter: 'nyan',
+                timeout: 5000,
                 bail: true,
                 recursive: true,
                 exit: true

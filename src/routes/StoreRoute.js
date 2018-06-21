@@ -33,7 +33,7 @@ class StoreRoute {
             };
 
             response
-                .status(HttpStatus.OK)
+                .status(HttpStatus.CREATED)
                 .send(results);
         } else {
             response

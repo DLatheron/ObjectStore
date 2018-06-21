@@ -7,11 +7,11 @@ const TestHelper = require('./helpers/TestHelper');
 
 describe('Store Creation', () => {
     it('should create a new store', async () => {
-        const storeDetails = await CreationHelper.createStore();
+        const storeDetails = await CreationHelper.CreateStore();
         const storeId = storeDetails.storeId;
 
-        assert.strictEqual(TestHelper.isValidId(storeId), true);
-        assert.strictEqual(await TestHelper.storeDirectoryExists(storeId), true);
+        assert.strictEqual(TestHelper.IsValidId(storeId), true);
+        assert.strictEqual(await TestHelper.StoreDirectoryExists(storeId), true);
     });
 
     // var req = request.post(url, function (err, resp, body) {

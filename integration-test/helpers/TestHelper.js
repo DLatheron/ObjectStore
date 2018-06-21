@@ -9,11 +9,11 @@ const OSBase = require('../../src/OSBase');
 const padding = 6;
 const paddingCh = '0';
 
-function isValidId(id) {
+function IsValidId(id) {
     return OSBase.IsValidId(id);
 }
 
-function makeStoreDirectory(storeId) {
+function MakeStoreDirectory(storeId) {
     const storeManagerConfig = _.get(nconf.get('storeManager'), 'config', {});
 
     return storeManagerConfig.basePath + new OSBase().uuidToPath(
@@ -23,14 +23,14 @@ function makeStoreDirectory(storeId) {
     ) + storeId + storeManagerConfig.pathSeparator;
 }
 
-function storeDirectoryExists(storeId) {
-    return fs.existsSync(makeStoreDirectory(storeId));
+function StoreDirectoryExists(storeId) {
+    return fs.existsSync(MakeStoreDirectory(storeId));
 }
 
-function makeObjectDirectory(storeId, objectId) {
+function MakeObjectDirectory(storeId, objectId) {
     const storeManagerConfig = _.get(nconf.get('storeManager'), 'config', {});
 
-    return makeStoreDirectory(storeId) +
+    return MakeStoreDirectory(storeId) +
         new OSBase().uuidToPath(
             objectId,
             storeManagerConfig.objectHierarchy,
@@ -40,20 +40,20 @@ function makeObjectDirectory(storeId, objectId) {
         storeManagerConfig.pathSeparator;
 }
 
-function makeObjectMetadataPath(storeId, objectId, version) {
-    return makeObjectDirectory(storeId, objectId) + `metadata.v${version.toString().padLeft(padding, paddingCh)}.json`;
+function MakeObjectMetadataPath(storeId, objectId, version) {
+    return MakeObjectDirectory(storeId, objectId) + `metadata.v${version.toString().padLeft(padding, paddingCh)}.json`;
 }
 
-function makeObjectContentPath(storeId, objectId, version) {
-    return makeObjectDirectory(storeId, objectId) + `content.v${version.toString().padLeft(padding, paddingCh)}.bin`;
+function MakeObjectContentPath(storeId, objectId, version) {
+    return MakeObjectDirectory(storeId, objectId) + `content.v${version.toString().padLeft(padding, paddingCh)}.bin`;
 }
 
-function objectDirectoryExists(storeId, objectId) {
-    return fs.existsSync(makeObjectDirectory(storeId, objectId));
+function ObjectDirectoryExists(storeId, objectId) {
+    return fs.existsSync(MakeObjectDirectory(storeId, objectId));
 }
 
-function objectExists(objectDetails, { expectedVersion, expectedContent, expectedMetadata }) {
-    if (!isValidId(objectDetails.objectId)) {
+function ObjectExists(objectDetails, { expectedVersion, expectedContents, expectedMetadata }) {
+    if (!IsValidId(objectDetails.objectId)) {
         return `objectDetails.objectId "${objectDetails.objectId}"is not a valid id`;
     }
 
@@ -61,25 +61,25 @@ function objectExists(objectDetails, { expectedVersion, expectedContent, expecte
         return `objectDetails.latestVersion was ${objectDetails.latestVersion} not ${expectedVersion}`;
     }
 
-    if (!objectDirectoryExists(objectDetails.storeId, objectDetails.objectId)) {
-        return `Directory ${makeObjectDirectory(objectDetails.storeId, objectDetails.objectId)} does not exist`;
+    if (!ObjectDirectoryExists(objectDetails.storeId, objectDetails.objectId)) {
+        return `Directory ${MakeObjectDirectory(objectDetails.storeId, objectDetails.objectId)} does not exist`;
     }
 
-    if (expectedContent) {
-        const contentPath = makeObjectContentPath(
+    if (expectedContents) {
+        const contentPath = MakeObjectContentPath(
             objectDetails.storeId,
             objectDetails.objectId,
             objectDetails.latestVersion
         );
         const content = fs.readFileSync(contentPath);
 
-        if (!_.isEqual(content, expectedContent)) {
+        if (!_.isEqual(content, expectedContents)) {
             return 'Content is not as expected';
         }
     }
 
     if (expectedMetadata) {
-        const metadataPath = makeObjectMetadataPath(
+        const metadataPath = MakeObjectMetadataPath(
             objectDetails.storeId,
             objectDetails.objectId,
             objectDetails.latestVersion
@@ -93,12 +93,12 @@ function objectExists(objectDetails, { expectedVersion, expectedContent, expecte
 }
 
 module.exports = {
-    isValidId,
-    makeStoreDirectory,
-    storeDirectoryExists,
-    makeObjectDirectory,
-    makeObjectMetadataPath,
-    makeObjectContentPath,
-    objectDirectoryExists,
-    objectExists
+    IsValidId,
+    MakeStoreDirectory,
+    StoreDirectoryExists,
+    MakeObjectDirectory,
+    MakeObjectMetadataPath,
+    MakeObjectContentPath,
+    ObjectDirectoryExists,
+    ObjectExists
 };

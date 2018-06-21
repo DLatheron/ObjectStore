@@ -2,8 +2,9 @@
 
 const consola = require('consola');
 const HttpStatus = require('http-status-codes');
-const OSBase = require('../OSBase');
 const _ = require('lodash');
+
+const OSBase = require('../OSBase');
 
 const logger = consola.withScope('ObjectRoute');
 
@@ -111,6 +112,8 @@ class ObjectRoute {
         // Note:
         // - Metadata and content as always sent together - BUT both are optional
         //   and are replaced with {} or a zero-length file if not present.
+        global.console.log('start');
+        global.console.time('createObject');
 
         const validationFailure = this.validateRequest(request, {
             permissions: 'create',
@@ -137,10 +140,13 @@ class ObjectRoute {
                 .send('Failed to create object');
         }
 
+        global.console.log('end');
+        global.console.timeEnd('createObject');
+
         await this._streamContentAndMetadata(request, osObject)
             .then((result) => {
                 return response
-                    .status(200)
+                    .status(HttpStatus.CREATED)
                     .send(result);
             })
             .catch(({ status, reason }) => {
@@ -217,7 +223,7 @@ class ObjectRoute {
         await this._streamContentAndMetadata(request, osObject)
             .then((result) => {
                 return response
-                    .status(200)
+                    .status(HttpStatus.OK)
                     .send(result);
             })
             .catch(({ status, reason }) => {
