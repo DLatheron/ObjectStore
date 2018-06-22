@@ -2,7 +2,7 @@
 
 const _ = require('lodash');
 
-const OSBase = require('./OSBase');
+const OSObjectHelper = require('./helpers/OSObjectHelper');
 const OSObject = require('./OSObject');
 const OSObjectDetails = require('./ObjectDetails');
 
@@ -11,26 +11,24 @@ const DEFAULT_OPTIONS = {
     pathSeparator: '/',
 };
 
-class Store extends OSBase {
+class Store {
     constructor(storeId, basePath, options) {
-        super();
-
         this.storeId = storeId;
         this.basePath = basePath;
         this.options = _.merge({}, DEFAULT_OPTIONS, options);
     }
 
     buildObjectPath(objectId) {
-        return this.uuidToPath(objectId, this.options.objectHierarchy, this.options.pathSeparator) +
+        return OSObjectHelper.IdToPath(objectId, this.options.objectHierarchy, this.options.pathSeparator) +
             objectId +
             this.options.pathSeparator;
     }
 
     async createObject() {
-        const objectId = this.generateId();
+        const objectId = OSObjectHelper.GenerateId();
         const fullPath = this.basePath + this.buildObjectPath(objectId);
 
-        if (await this.createDirectory(fullPath)) {
+        if (await OSObjectHelper.CreateDirectory(fullPath)) {
             const osObject = new OSObject(this.storeId, objectId, fullPath);
 
             osObject.details = new OSObjectDetails();
@@ -43,7 +41,7 @@ class Store extends OSBase {
     async getObject(objectId) {
         const fullPath = this.basePath + this.buildObjectPath(objectId);
 
-        if (await this.directoryExists(fullPath)) {
+        if (await OSObjectHelper.DirectoryExists(fullPath)) {
             const osObject = new OSObject(this.storeId, objectId, fullPath);
 
             if (await osObject._readDetails()) {

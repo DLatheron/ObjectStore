@@ -3,6 +3,7 @@
 
 const assert = require('assert');
 const proxyquire = require('proxyquire');
+const OSObjectHelper = require('../src/helpers/OSObjectHelper');
 const sinon = require('sinon');
 
 describe('#Store', () => {
@@ -23,6 +24,7 @@ describe('#Store', () => {
         };
 
         Store = proxyquire('../src/Store', {
+            './helpers/OSObjectHelper': OSObjectHelper,
             './OSObject': function() {
                 return wrapper.fakeOSObject(...arguments);
             }
@@ -49,12 +51,12 @@ describe('#Store', () => {
                 { storeHierarchy: [5, 2], objectHierarchy: [6, 2] }
             );
 
-            sandbox.stub(store, 'generateId').returns('objectId');
+            sandbox.stub(OSObjectHelper, 'GenerateId').returns('objectId');
         });
 
         it('should attempt to create a directory for the object', async () => {
-            sandbox.mock(store)
-                .expects('createDirectory')
+            sandbox.mock(OSObjectHelper)
+                .expects('CreateDirectory')
                 .withExactArgs('./Stores/store/Id/storeId/object/Id/objectId/')
                 .once()
                 .returns(true);
@@ -65,7 +67,7 @@ describe('#Store', () => {
         });
 
         it('should return an OSObject if object creation succeeds', async () => {
-            sandbox.stub(store, 'createDirectory').returns(true);
+            sandbox.stub(OSObjectHelper, 'CreateDirectory').returns(true);
 
             const osObject = await store.createObject();
 
@@ -73,7 +75,7 @@ describe('#Store', () => {
         });
 
         it('should return undefined if the object does not exist', async () => {
-            sandbox.stub(store, 'createDirectory').returns(false);
+            sandbox.stub(OSObjectHelper, 'CreateDirectory').returns(false);
 
             assert.strictEqual(await store.createObject(), undefined);
         });
@@ -87,11 +89,11 @@ describe('#Store', () => {
                 { storeHierarchy: [5, 2], objectHierarchy: [6, 2] }
             );
 
-            sandbox.stub(store, 'generateId').returns('objectId');
+            sandbox.stub(OSObjectHelper, 'GenerateId').returns('objectId');
         });
 
         it('should return an object if it exists', async () => {
-            sandbox.stub(store, 'directoryExists').returns(true);
+            sandbox.stub(OSObjectHelper, 'DirectoryExists').returns(true);
 
             const osObject = await store.getObject('objectId');
 
@@ -99,7 +101,7 @@ describe('#Store', () => {
         });
 
         it('should return undefined if the object does not exist', async () => {
-            sandbox.stub(store, 'directoryExists').returns(false);
+            sandbox.stub(OSObjectHelper, 'DirectoryExists').returns(false);
 
             assert.strictEqual(await store.getObject('objectId'), undefined);
         });

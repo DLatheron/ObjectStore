@@ -4,9 +4,10 @@ const { promisify } = require('util');
 
 const consola = require('consola');
 const fs = require('fs-extra');
-const OSBase = require('./OSBase');
-const Store = require('./Store');
 const _ = require('lodash');
+
+const OSObjectHelper = require('./helpers/OSObjectHelper');
+const Store = require('./Store');
 
 const logger = consola.withScope('StoreManager');
 
@@ -17,26 +18,24 @@ const DEFAULT_OPTIONS = {
     basePath: './Stores/'
 };
 
-class StoreManager extends OSBase {
+class StoreManager {
     constructor(options) {
-        super();
-
         this.options = _.merge({}, DEFAULT_OPTIONS, options);
 
         this.remove = promisify(fs.remove);
     }
 
     buildStorePath(storeId) {
-        return this.uuidToPath(storeId, this.options.storeHierarchy, this.options.pathSeparator) +
+        return OSObjectHelper.IdToPath(storeId, this.options.storeHierarchy, this.options.pathSeparator) +
             storeId +
             this.options.pathSeparator;
     }
 
     async createStore() {
-        const storeId = this.generateId();
+        const storeId = OSObjectHelper.GenerateId();
         const storePath = this.options.basePath + this.buildStorePath(storeId);
 
-        if (await this.createDirectory(storePath)) {
+        if (await OSObjectHelper.CreateDirectory(storePath)) {
             return new Store(storeId, storePath, this.options);
         }
     }
@@ -44,7 +43,7 @@ class StoreManager extends OSBase {
     async getStore(storeId) {
         const storePath = this.options.basePath + this.buildStorePath(storeId);
 
-        if (await this.directoryExists(storePath)) {
+        if (await OSObjectHelper.DirectoryExists(storePath)) {
             return new Store(storeId, storePath, this.options);
         }
     }

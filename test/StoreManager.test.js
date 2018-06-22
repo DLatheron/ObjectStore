@@ -4,6 +4,7 @@
 const assert = require('assert');
 const sinon = require('sinon');
 
+const OSObjectHelper = require('../src/helpers/OSObjectHelper');
 const Store = require('../src/Store');
 
 describe('#StoreManager', () => {
@@ -29,12 +30,12 @@ describe('#StoreManager', () => {
 
     describe('#createStore', () => {
         beforeEach(() => {
-            sandbox.stub(storeManager, 'generateId').returns('storeId');
+            sandbox.stub(OSObjectHelper, 'GenerateId').returns('storeId');
         });
 
         it('should attempt to create a store', async () => {
-            sandbox.mock(storeManager)
-                .expects('createDirectory')
+            sandbox.mock(OSObjectHelper)
+                .expects('CreateDirectory')
                 .withExactArgs('./Stores/store/Id/storeId/')
                 .once()
                 .returns(true);
@@ -45,13 +46,13 @@ describe('#StoreManager', () => {
         });
 
         it('should return a Store class if store creation succeeds', async () => {
-            sandbox.stub(storeManager, 'createDirectory').returns(true);
+            sandbox.stub(OSObjectHelper, 'CreateDirectory').returns(true);
 
             assert(await storeManager.createStore('storeId') instanceof Store, 'Not a Store');
         });
 
         it('should return undefined if store creation fails', async () => {
-            sandbox.stub(storeManager, 'createDirectory').returns(false);
+            sandbox.stub(OSObjectHelper, 'CreateDirectory').returns(false);
 
             assert.strictEqual(await storeManager.createStore('storeId'), undefined);
         });
@@ -63,7 +64,7 @@ describe('#StoreManager', () => {
         });
 
         it('should return a store if it exists', async () => {
-            sandbox.stub(storeManager, 'directoryExists').returns(true);
+            sandbox.stub(OSObjectHelper, 'DirectoryExists').returns(true);
 
             const store = await storeManager.getStore('storeId');
 
@@ -72,7 +73,7 @@ describe('#StoreManager', () => {
         });
 
         it('should return undefined if the store does not exist', async () => {
-            sandbox.stub(storeManager, 'directoryExists').returns(false);
+            sandbox.stub(OSObjectHelper, 'DirectoryExists').returns(false);
 
             assert.strictEqual(await storeManager.getStore('storeId'), undefined);
         });

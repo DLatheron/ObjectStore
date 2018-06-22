@@ -1,8 +1,8 @@
 'use strict';
 
-const fs = require('fs');
 const _ = require('lodash');
-const { promisify } = require('util');
+
+const AsyncOps = require('./helpers/AsyncOps');
 
 const DEFAULT_OPTIONS = {
     retryInterval: 100, // milliseconds
@@ -34,7 +34,7 @@ async function AcquireLock(lock, startTime, options) {
     if (!lock.fileHandle) {
         do {
             // TODO: Improve.
-            await lock.asyncWaitForTimeout(options.retryInterval);
+            await AsyncOps.WaitForTimeout(options.retryInterval);
 
             const elapsedTime = Date.now() - startTime;
             if (elapsedTime > options.waitTimeout) {
@@ -86,11 +86,6 @@ class Lock {
         this.options = _.merge({}, DEFAULT_OPTIONS, options);
         this.lockFilePath = basePath + this.options.lockFilename;
         this.fileHandle = null;
-
-        this.asyncOpenFile = promisify(fs.open);
-        this.asyncWaitForTimeout = promisify(setTimeout);
-        this.closeFile = promisify(fs.close);
-        this.deleteFile = promisify(fs.unlink);
     }
 
     async _tryToLock() {
@@ -99,7 +94,7 @@ class Lock {
                 return lockAlreadyAcquired;
             }
 
-            return await this.asyncOpenFile(this.lockFilePath, 'wx+');
+            return await AsyncOps.OpenFile(this.lockFilePath, 'wx+');
         } catch (error) {
             return;
         }
@@ -108,8 +103,8 @@ class Lock {
     async _unlock() {
         try {
             if (this.fileHandle) {
-                await this.deleteFile(this.lockFilePath);
-                await this.closeFile(this.fileHandle);
+                await AsyncOps.DeleteFile(this.lockFilePath);
+                await AsyncOps.CloseFile(this.fileHandle);
                 this.fileHandle = null;
             }
         } catch (error) {

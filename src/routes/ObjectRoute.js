@@ -4,7 +4,7 @@ const consola = require('consola');
 const HttpStatus = require('http-status-codes');
 const _ = require('lodash');
 
-const OSBase = require('../OSBase');
+const OSObjectHelper = require('../OSObjectHelper');
 
 const logger = consola.withScope('ObjectRoute');
 
@@ -45,7 +45,7 @@ class ObjectRoute {
         }
 
         if (expectations.storeId) {
-            if (!OSBase.IsValidId(_.get(request, 'params.storeId'))) {
+            if (!OSObjectHelper.IsValidId(_.get(request, 'params.storeId'))) {
                 return {
                     status: HttpStatus.BAD_REQUEST,
                     reason: 'Invalid store id specified'
@@ -53,7 +53,7 @@ class ObjectRoute {
             }
         }
         if (expectations.objectId) {
-            if (!OSBase.IsValidId(_.get(request, 'params.objectId'))) {
+            if (!OSObjectHelper.IsValidId(_.get(request, 'params.objectId'))) {
                 return {
                     status: HttpStatus.BAD_REQUEST,
                     reason: 'Invalid object id specified'

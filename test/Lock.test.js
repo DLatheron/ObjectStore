@@ -2,20 +2,25 @@
 'use strict';
 
 const assert = require('assert');
-const Lock = require('../src/Lock');
-// const proxyquire = require('proxyquire');
+const proxyquire = require('proxyquire');
 const sinon = require('sinon');
+
+const AsyncOps = require('../src/helpers/AsyncOps');
 const UnitTestHelper = require('./helpers/UnitTestHelper');
-// const _ = require('lodash');
 
 describe('#Lock', () => {
     let sandbox;
     let clock;
+    let Lock;
     let fakeOpenFileHandle;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         clock = sinon.useFakeTimers();
+
+        Lock =  proxyquire('../src/Lock', {
+            './helpers/AsyncOps': AsyncOps
+        });
 
         fakeOpenFileHandle = 0xdeadbeef;
     });
@@ -89,8 +94,8 @@ describe('#Lock', () => {
             it('should attempt to acquire the lock', async () => {
                 const lock = new Lock('./single/');
 
-                sinon.mock(lock)
-                    .expects('asyncOpenFile')
+                sandbox.mock(AsyncOps)
+                    .expects('OpenFile')
                     .withExactArgs(lock.lockFilePath, 'wx+')
                     .once()
                     .returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
@@ -105,11 +110,11 @@ describe('#Lock', () => {
 
                 const lock = new Lock('./backoff/', { retryInterval });
 
-                sinon.stub(lock, 'asyncOpenFile')
-                    .onFirstCall().returns(UnitTestHelper.createPromise().reject())
-                    .onSecondCall().returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
-                sinon.mock(lock)
-                    .expects('asyncWaitForTimeout')
+                sandbox.stub(AsyncOps, 'OpenFile')
+                    .onCall(0).returns(UnitTestHelper.createPromise().reject())
+                    .onCall(1).returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
+                sandbox.mock(AsyncOps)
+                    .expects('WaitForTimeout')
                     .withExactArgs(retryInterval)
                     .once()
                     .returns(UnitTestHelper.createPromise().fulfill());
@@ -145,8 +150,8 @@ describe('#Lock', () => {
 
                 const lock = new Lock('./repeat/', { retryInterval, waitTimeout });
 
-                sinon.stub(lock, 'asyncOpenFile').returns(UnitTestHelper.createPromise().reject());
-                sinon.stub(lock, 'asyncWaitForTimeout')
+                sandbox.stub(AsyncOps, 'OpenFile').returns(UnitTestHelper.createPromise().reject());
+                sandbox.stub(AsyncOps, 'WaitForTimeout')
                     .callsFake(() => {
                         clock.tick(250);
                         attemptedLockCount++;
@@ -184,29 +189,52 @@ describe('#Lock', () => {
             });
 
             it('should attempt to acquire the each locks', async () => {
-                locks.forEach((lock, index) => {
-                    sinon.mock(locks[index])
-                        .expects('asyncOpenFile')
-                        .withExactArgs(lock.lockFilePath, 'wx+')
-                        .once()
-                        .returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
-                });
+                let expectedIndex = 0;
+
+                sandbox.stub(AsyncOps, 'OpenFile')
+                    .onCall(0).callsFake((filePath, fileMode) => {
+                        assert.strictEqual(filePath, locks[0].lockFilePath);
+                        assert.strictEqual(fileMode, 'wx+');
+                        expectedIndex++;
+                        return UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle);
+                    })
+                    .onCall(1).callsFake((filePath, fileMode) => {
+                        assert.strictEqual(filePath, locks[1].lockFilePath);
+                        assert.strictEqual(fileMode, 'wx+');
+                        expectedIndex++;
+                        return UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle);
+                    })
+                    .onCall(2).callsFake((filePath, fileMode) => {
+                        assert.strictEqual(filePath, locks[2].lockFilePath);
+                        assert.strictEqual(fileMode, 'wx+');
+                        expectedIndex++;
+                        return UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle);
+                    });
 
                 assert.strictEqual(await Lock.Acquire(locks), true);
 
-                sandbox.verify();
+                assert.strictEqual(expectedIndex, locks.length);
             });
 
             it('should attempt to acquire the locks in order', async () => {
                 let expectedIndex = 0;
 
-                locks.forEach((lock, index) => {
-                    sinon.stub(locks[index], 'asyncOpenFile').callsFake(() => {
-                        assert.strictEqual(index, expectedIndex);
+                sandbox.stub(AsyncOps, 'OpenFile')
+                    .onCall(0).callsFake(() => {
+                        assert.strictEqual(0, expectedIndex);
+                        expectedIndex++;
+                        return UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle);
+                    })
+                    .onCall(1).callsFake(() => {
+                        assert.strictEqual(1, expectedIndex);
+                        expectedIndex++;
+                        return UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle);
+                    })
+                    .onCall(2).callsFake(() => {
+                        assert.strictEqual(2, expectedIndex);
                         expectedIndex++;
                         return UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle);
                     });
-                });
 
                 assert.strictEqual(await Lock.Acquire(locks), true);
 
@@ -214,10 +242,11 @@ describe('#Lock', () => {
             });
 
             it('should fail the locking if any given lock cannot be acquire', async () => {
-                sinon.stub(locks[0], 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
-                sinon.stub(locks[1], 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
-                sinon.stub(locks[2], 'asyncOpenFile').returns(UnitTestHelper.createPromise().reject());
-                sinon.stub(locks[2], 'asyncWaitForTimeout').callsFake(() => {
+                sandbox.stub(AsyncOps, 'OpenFile')
+                    .onCall(0).returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle))
+                    .onCall(1).returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle))
+                    .onCall(2).returns(UnitTestHelper.createPromise().reject());
+                sandbox.stub(AsyncOps, 'WaitForTimeout').callsFake(() => {
                     clock.tick(1001);
                     return UnitTestHelper.createPromise().fulfill();
                 });
@@ -233,7 +262,7 @@ describe('#Lock', () => {
 
             beforeEach(() => {
                 lock = new Lock('./releaseTest/');
-                sinon.stub(lock, 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
+                sandbox.stub(AsyncOps, 'OpenFile').returns(UnitTestHelper.createPromise().fulfill(fakeOpenFileHandle));
             });
 
             it('should throw an Error if the passed instance is not a Lock', async () => {
@@ -245,9 +274,19 @@ describe('#Lock', () => {
                 }
             });
 
-            it('should catch any error thrown by unlocking', async () => {
+            it('should catch any error thrown by unlocking (deletion)', async () => {
                 lock.fileHandle = fakeOpenFileHandle;
-                sinon.stub(lock, 'closeFile').returns(UnitTestHelper.createPromise().reject());
+                sandbox.stub(AsyncOps, 'DeleteFile').returns(UnitTestHelper.createPromise().reject());
+
+                await Lock.Release(lock);
+
+                assert.strictEqual(lock.fileHandle, null);
+            });
+
+            it('should catch any error thrown by unlocking (closing)', async () => {
+                lock.fileHandle = fakeOpenFileHandle;
+                sandbox.stub(AsyncOps, 'DeleteFile').returns(UnitTestHelper.createPromise().fulfill());
+                sandbox.stub(AsyncOps, 'CloseFile').returns(UnitTestHelper.createPromise().reject());
 
                 await Lock.Release(lock);
 
@@ -262,7 +301,8 @@ describe('#Lock', () => {
 
             it('should release the lock if it has been acquired', async () => {
                 lock.fileHandle = fakeOpenFileHandle;
-                sinon.stub(lock, 'closeFile').returns(UnitTestHelper.createPromise().fulfill());
+                sandbox.stub(AsyncOps, 'DeleteFile').returns(UnitTestHelper.createPromise().fulfill());
+                sandbox.stub(AsyncOps, 'CloseFile').returns(UnitTestHelper.createPromise().fulfill());
 
                 await Lock.Release(lock);
 
@@ -296,28 +336,48 @@ describe('#Lock', () => {
                 }
             });
 
-            it('should attempt to release the each locks', async () => {
-                locks.forEach((lock, index) => {
-                    sinon.mock(locks[index])
-                        .expects('closeFile')
-                        .withExactArgs(fakeOpenFileHandle)
-                        .once();
-                });
+            it('should attempt to release each lock', async () => {
+                let expectedCalls = 0;
+
+                function validateCall(lockIndex, expectedArgument, sequence, argument) {
+                    assert.strictEqual(argument, expectedArgument);
+                    assert.strictEqual(expectedCalls, sequence);
+                    expectedCalls++;
+                    return UnitTestHelper.createPromise().fulfill();
+                }
+
+                sandbox.stub(AsyncOps, 'DeleteFile')
+                    .onCall(0).callsFake(validateCall.bind('DeleteFile', 0, locks[0].lockFilePath, 0))
+                    .onCall(1).callsFake(validateCall.bind('DeleteFile', 1, locks[1].lockFilePath, 2))
+                    .onCall(2).callsFake(validateCall.bind('DeleteFile', 2, locks[2].lockFilePath, 4));
+
+                sandbox.stub(AsyncOps, 'CloseFile')
+                    .onCall(0).callsFake(validateCall.bind('CloseFile', 0, fakeOpenFileHandle, 1))
+                    .onCall(1).callsFake(validateCall.bind('CloseFile', 1, fakeOpenFileHandle, 3))
+                    .onCall(2).callsFake(validateCall.bind('CloseFile', 2, fakeOpenFileHandle, 5));
 
                 await Lock.Release(locks);
 
-                sandbox.verify();
+                assert.strictEqual(expectedCalls, 6);
             });
 
             it('should attempt to release the locks in order', async () => {
                 let expectedIndex = 0;
 
-                locks.forEach((lock, index) => {
-                    sinon.stub(locks[index], 'closeFile').callsFake(() => {
-                        assert.strictEqual(index, expectedIndex);
+                sandbox.stub(AsyncOps, 'DeleteFile').returns(UnitTestHelper.createPromise().fulfill());
+                sandbox.stub(AsyncOps, 'CloseFile')
+                    .onCall(0).callsFake(() => {
+                        assert.strictEqual(0, expectedIndex);
+                        expectedIndex++;
+                    })
+                    .onCall(1).callsFake(() => {
+                        assert.strictEqual(1, expectedIndex);
+                        expectedIndex++;
+                    })
+                    .onCall(2).callsFake(() => {
+                        assert.strictEqual(2, expectedIndex);
                         expectedIndex++;
                     });
-                });
 
                 await Lock.Release(locks);
 
@@ -326,11 +386,10 @@ describe('#Lock', () => {
 
             it('should not attempt to release the locks that are not acquired', async () => {
                 locks[1].fileHandle = null;
-                sinon.stub(locks[0], 'closeFile');
-                sinon.mock(locks[1])
-                    .expects('closeFile')
-                    .never();
-                sinon.stub(locks[2], 'closeFile');
+                sandbox.stub(AsyncOps, 'DeleteFile').returns(UnitTestHelper.createPromise().fulfill());
+                sandbox.mock(AsyncOps)
+                    .expects('CloseFile')
+                    .twice();
 
                 await Lock.Release(locks);
 
@@ -338,16 +397,16 @@ describe('#Lock', () => {
             });
 
             it('should unlock all locks, even if a previous one fails', async () => {
-                sinon.stub(locks[0], 'asyncOpenFile').returns(UnitTestHelper.createPromise().fulfill());
-                sinon.stub(locks[1], 'asyncOpenFile').returns(UnitTestHelper.createPromise().reject());
-                sinon.mock(locks[2])
-                    .expects('asyncOpenFile')
-                    .once()
-                    .returns(UnitTestHelper.createPromise().fulfill());
+                sandbox.stub(AsyncOps, 'DeleteFile').returns(UnitTestHelper.createPromise().fulfill());
+                sandbox.stub(AsyncOps, 'CloseFile')
+                    .onCall(0).returns(UnitTestHelper.createPromise().fulfill())
+                    .onCall(1).returns(UnitTestHelper.createPromise().reject())
+                    .onCall(2).returns(UnitTestHelper.createPromise().fulfill());
 
                 await Lock.Release(locks);
 
-                sandbox.verify();
+                assert.strictEqual(locks[0].fileHandle, null);
+                assert.strictEqual(locks[2].fileHandle, null);
             });
         });
     });
