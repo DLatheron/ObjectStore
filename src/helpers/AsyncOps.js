@@ -14,10 +14,20 @@ const WaitForTimeout = promisify(setTimeout);
 
 module.exports = {
     OpenFile,
+    SafeOpenFile: async () => {
+        try {
+            return await OpenFile(...arguments);
+        } catch (error) {
+            return null;
+        }
+    },
     CloseFile,
     DeleteFile,
     ReadFile,
     WriteFile,
     Stat,
+    GetFileSize: async() => {
+        return await Stat(...arguments).size;
+    },
     WaitForTimeout
 };

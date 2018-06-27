@@ -1,0 +1,27 @@
+{
+    "Categories":  {
+        "Default": "Error",
+        "TransitoryFailure": "Transitory Failure",
+        "PermanentFailure": "Permanent Failure"
+    },
+    "Reasons": {
+        "Default": {
+            "reason": "Error - blocked reason not found",
+            "category": "Default"
+        },
+        "ResourceNotAvailable": {
+            "reason": "The requested resource is not available at the moment",
+            "category": "TransitoryFailure",
+            "additionalReasonData": [ "storeId", "objectId" ],
+            "additionalReasonDataSeparator": ", ",
+            "description": "The resource is not available because it is in use by another operation, please wait a while and try again."
+        },
+        "LockCouldNotBeAcquired": {
+            "reason": "The locked for the resource could not be acquire at the moment",
+            "category": "TransitoryFailure",
+            "additionalReasonData": [ "storeId", "objectId" ],
+            "additionalReasonDataSeparator": ", ",
+            "description": "The resource is not available because it is in use by another operation, please wait a while and try again."
+        }
+    }
+}

@@ -4,6 +4,7 @@ const consola = require('consola');
 const _ = require('lodash');
 
 const AsyncOps = require('./helpers/AsyncOps');
+const { Reasons, OSError } = require('./OSError');
 
 const logger = consola.withScope('VersionLock');
 
@@ -20,17 +21,20 @@ class VersionLock {
     }
 
     async _tryToOpenLockFile(startTime) {
-        let fileHandle = await AsyncOps.OpenFile(this.lockFilePath, 'wx+');
+        let fileHandle = await AsyncOps.SafeOpenFile(this.lockFilePath, 'wx+');
         if (!fileHandle) {
             do {
                 await AsyncOps.WaitForTimeout(this.options.retryInterval);
 
                 const elapsedTime = Date.now() - startTime;
                 if (elapsedTime > this.options.waitTimeout) {
-                    throw new Error(`Attempt to acquire lock on "${this.lockFilePath}" timed out (> ${this.options.waitTimeout}ms)`);
+                    throw new OSError(
+                        Reasons.LockCouldNotBeAcquired,
+                        `Attempt to acquire lock on "${this.lockFilePath}" timed out (> ${this.options.waitTimeout}ms)`
+                    );
                 }
 
-                fileHandle = await AsyncOps.OpenFile(this.lockFilePath, 'wx+');
+                fileHandle = await AsyncOps.SafeOpenFile(this.lockFilePath, 'wx+');
             }
             while (!fileHandle);
         }
@@ -38,18 +42,8 @@ class VersionLock {
         return fileHandle;
     }
 
-    _bumpLatestVersion(results) {
-        const bumpedResults = Object.assign({}, results);
-        bumpedResults.latestVersion++;
-        return bumpedResults;
-    }
-
     async _readLockFile(fileHandle) {
-        async function getLockFileSize() {
-            return await AsyncOps.Stat(this.lockFilePath);
-        }
-
-        const fileSize = await getLockFileSize();
+        const fileSize = await AsyncOps.GetFileSize(this.lockFilePath);
         const buffer = new Buffer(fileSize);
 
         const readResult = await AsyncOps.ReadFile(
@@ -60,10 +54,10 @@ class VersionLock {
             null);
 
         if (readResult.bytesRead !== fileSize) {
-            throw new Error(`Lock file "${this.lockFilePath}" is not of its reported size ${fileSize}`);
+            throw new Error(`Lock file "${this.lockFilePath}" was ${readResult.bytesRead} bytes when it was expected to be ${fileSize} bytes`);
         }
 
-        return JSON.parse(buffer);
+        return JSON.parse(buffer.toString());
     }
 
     async _writeLockFile(fileHandle, contents) {
@@ -75,7 +69,28 @@ class VersionLock {
         }
     }
 
-    async getContents() {
+    _performModifications(originalContents, modifications) {
+        if (!modifications) {
+            return originalContents;
+        }
+
+        let updatedContents = {};
+
+        _.mapKeys(originalContents, (value, propertyName) => {
+            if (modifications[propertyName] === undefined) {
+                updatedContents[propertyName] = originalContents[propertyName];
+            } else if (typeof modifications[propertyName] === 'function') {
+                updatedContents[propertyName] =
+                    modifications[propertyName](originalContents[propertyName], modifications);
+            } else {
+                updatedContents[propertyName] = modifications[propertyName];
+            }
+        });
+
+        return updatedContents;
+    }
+
+    async getContents(modifications) {
         let fileHandle;
         let contents;
         const startTime = Date.now();
@@ -83,7 +98,10 @@ class VersionLock {
         try {
             fileHandle = await this._tryToOpenLockFile(startTime);
             contents = await this._readLockFile(fileHandle);
-            await this._writeLockFile(fileHandle, this._bumpLatestVersion(contents));
+
+            const updatedContents = this._performModifications(contents, modifications);
+
+            await this._writeLockFile(fileHandle, updatedContents);
         } catch (error) {
             logger.error(`Failed to acquire version lock on "${this.lockFilePath}" because: ${error.message}`);
             contents = undefined;
