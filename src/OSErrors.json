@@ -22,6 +22,21 @@
             "additionalReasonData": [ "storeId", "objectId" ],
             "additionalReasonDataSeparator": ", ",
             "description": "The resource is not available because it is in use by another operation, please wait a while and try again."
+        },
+        "LockFileIsCorrupt": {
+            "reason": "The lock for the resource was acquired, but could not be read",
+            "category": "PermanentFailure",
+            "additionalReasonData": [ "storeId", "objectId" ],
+            "additionalReasonDataSeparator": ", ",
+            "description": "The resources's lock file is probably corrupt - please contact your administrator who can regenerate it."
+        },
+        "LockCouldNotBeWritten": {
+            "reason": "The lock file for the resource could not be updated at the moment",
+            "category": "TransitoryFailure",
+            "additionalReasonData": [ "storeId", "objectId" ],
+            "additionalReasonDataSeparator": ", ",
+            "description": "The resource is not available because it is in use by another operation, please wait a while and try again."
+
         }
     }
 }

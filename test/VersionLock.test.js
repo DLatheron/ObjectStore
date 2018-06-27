@@ -6,7 +6,7 @@ const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 
 const AsyncOps = require('../src/helpers/AsyncOps');
-const { Reasons, OSError } = require('../src/OSError');
+const { Reasons } = require('../src/OSError');
 
 describe('#VersionLock', () => {
     let sandbox;
@@ -113,7 +113,7 @@ describe('#VersionLock', () => {
             sandbox.verify();
         });
 
-        it('should return undefined if the lock file cannot be opened', async () => {
+        it('should throw an error if the lock file cannot be opened', async () => {
             sandbox.stub(versionLock, '_tryToOpenLockFile').callsFake(() => {
                 throw new Error('_tryToOpenLockFile threw this');
             });
@@ -122,7 +122,12 @@ describe('#VersionLock', () => {
             sandbox.mock(versionLock).expects('_writeLockFile').never();
             sandbox.mock(AsyncOps).expects('CloseFile').never();
 
-            assert.strictEqual(await versionLock.getContents(), undefined);
+            try {
+                assert.strictEqual(await versionLock.getContents(), undefined);
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(error.reason, Reasons.LockCouldNotBeAcquired);
+            }
 
             sandbox.verify();
         });
@@ -143,7 +148,7 @@ describe('#VersionLock', () => {
             sandbox.verify();
         });
 
-        it('should return undefined if the lock file cannot be read', async () => {
+        it('should throw an error if the lock file cannot be read', async () => {
             sandbox.stub(versionLock, '_tryToOpenLockFile').returns(fakeFileHandle);
             sandbox.stub(versionLock, '_readLockFile').callsFake(() => {
                 throw new Error('_readLockFile threw this');
@@ -152,7 +157,12 @@ describe('#VersionLock', () => {
             sandbox.mock(versionLock).expects('_writeLockFile').never();
             sandbox.stub(AsyncOps, 'CloseFile');
 
-            assert.strictEqual(await versionLock.getContents(), undefined);
+            try {
+                assert.strictEqual(await versionLock.getContents(), undefined);
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(error.reason, Reasons.LockFileIsCorrupt);
+            }
 
             sandbox.verify();
         });
@@ -167,7 +177,12 @@ describe('#VersionLock', () => {
                 .withExactArgs(fakeFileHandle)
                 .once();
 
-            await versionLock.getContents();
+            try {
+                await versionLock.getContents();
+                assert.fail();
+            } catch (error) {
+                // Do nothing.
+            }
 
             sandbox.verify();
         });
@@ -272,7 +287,7 @@ describe('#VersionLock', () => {
             sandbox.verify();
         });
 
-        it('should return undefined if the lock file cannot be written', async () => {
+        it('should throw an error if the lock file cannot be written', async () => {
             sandbox.stub(versionLock, '_tryToOpenLockFile').returns(fakeFileHandle);
             sandbox.stub(versionLock, '_readLockFile').returns({ latestVersion: 1 });
             sandbox.stub(versionLock, '_performModifications').returns({ latestVersion: 2 });
@@ -281,7 +296,12 @@ describe('#VersionLock', () => {
             });
             sandbox.stub(AsyncOps, 'CloseFile');
 
-            assert.strictEqual(await versionLock.getContents(), undefined);
+            try {
+                assert.strictEqual(await versionLock.getContents(), undefined);
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(error.reason, Reasons.LockCouldNotBeWritten);
+            }
         });
 
         it('should attempt to close the file if the lock file could not be written', async () => {
@@ -296,7 +316,12 @@ describe('#VersionLock', () => {
                 .withExactArgs(fakeFileHandle)
                 .once();
 
-            assert.strictEqual(await versionLock.getContents(), undefined);
+            try {
+                assert.strictEqual(await versionLock.getContents(), undefined);
+                assert.fail();
+            } catch (error) {
+                // Ignore throw.
+            }
 
             sandbox.verify();
         });
@@ -363,10 +388,10 @@ describe('#VersionLock', () => {
                 await versionLock._tryToOpenLockFile(0);
                 assert.fail();
             } catch (error) {
-                assert.deepStrictEqual(error, new OSError(
-                    Reasons.LockCouldNotBeAcquired,
+                assert.deepStrictEqual(
+                    error.message,
                     `Attempt to acquire lock on "${versionLock.lockFilePath}" timed out (> ${versionLock.options.waitTimeout}ms)`
-                ));
+                );
             }
         });
 
@@ -478,10 +503,73 @@ describe('#VersionLock', () => {
     });
 
     describe('#_writeLockFile', () => {
-        it('should convert the contents to JSON');
-        it('should attempt to the write the contents to the lock file');
-        it('should throw an error if the file cannot be written');
-        it('should throw an error if the file is not of the expected size');
+        let fakeContents;
+        let fakeContentsAsJson;
+        let fakeContentsInBuffer;
+
+        beforeEach(() => {
+            versionLock = new VersionLock();
+            fakeContents = {
+                latestVersion: 252,
+                otherKey: 'Hello',
+                boolean: true
+            };
+            fakeContentsAsJson = JSON.stringify(fakeContents);
+            fakeContentsInBuffer = new Buffer(fakeContentsAsJson, 'utf8');
+        });
+
+        it('should convert the contents to JSON', async () => {
+            sandbox.mock(JSON)
+                .expects('stringify')
+                .withExactArgs(fakeContents)
+                .once()
+                .returns(fakeContentsAsJson);
+            sandbox.stub(AsyncOps, 'WriteFile').returns({ bytesWritten: fakeContentsInBuffer.length });
+
+            await versionLock._writeLockFile(fakeFileHandle, fakeContents);
+
+            sandbox.verify();
+        });
+
+        it('should attempt to the write the contents to the lock file', async () => {
+            sandbox.mock(AsyncOps)
+                .expects('WriteFile')
+                .withExactArgs(
+                    fakeFileHandle,
+                    fakeContentsInBuffer
+                )
+                .once()
+                .returns({ bytesWritten: fakeContentsInBuffer.length });
+
+            await versionLock._writeLockFile(fakeFileHandle, fakeContents);
+
+            sandbox.verify();
+        });
+
+        it('should throw an error if the file cannot be written', async () => {
+            sandbox.stub(AsyncOps, 'WriteFile').throws(new Error('WriteFile threw this'));
+
+            try {
+                await versionLock._writeLockFile(fakeFileHandle, fakeContents);
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(error.message, 'WriteFile threw this');
+            }
+        });
+
+        it('should throw an error if the file is not of the expected size', async () => {
+            sandbox.stub(AsyncOps, 'WriteFile').returns({ bytesWritten: 17 });
+
+            try {
+                await versionLock._writeLockFile(fakeFileHandle, fakeContents);
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(
+                    error.message,
+                    `Lock file "${versionLock.lockFilePath}" was 17 bytes not the expected size ${fakeContentsInBuffer.length} bytes`
+                );
+            }
+        });
     });
 
     describe('#_performModifications', () => {

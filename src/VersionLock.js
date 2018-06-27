@@ -1,12 +1,9 @@
 'use strict';
 
-const consola = require('consola');
 const _ = require('lodash');
 
 const AsyncOps = require('./helpers/AsyncOps');
 const { Reasons, OSError } = require('./OSError');
-
-const logger = consola.withScope('VersionLock');
 
 const DEFAULT_OPTIONS = {
     retryInterval: 100, // milliseconds
@@ -28,10 +25,7 @@ class VersionLock {
 
                 const elapsedTime = Date.now() - startTime;
                 if (elapsedTime > this.options.waitTimeout) {
-                    throw new OSError(
-                        Reasons.LockCouldNotBeAcquired,
-                        `Attempt to acquire lock on "${this.lockFilePath}" timed out (> ${this.options.waitTimeout}ms)`
-                    );
+                    throw new Error(`Attempt to acquire lock on "${this.lockFilePath}" timed out (> ${this.options.waitTimeout}ms)`);
                 }
 
                 fileHandle = await AsyncOps.SafeOpenFile(this.lockFilePath, 'wx+');
@@ -65,7 +59,7 @@ class VersionLock {
 
         const writeResult = await AsyncOps.WriteFile(fileHandle, buffer);
         if (writeResult.bytesWritten !== buffer.length) {
-            throw new Error(`Lock file "${this.lockFilePath}" was not of expected size ${buffer.length}`);
+            throw new Error(`Lock file "${this.lockFilePath}" was ${writeResult.bytesWritten} bytes not the expected size ${buffer.length} bytes`);
         }
     }
 
@@ -97,19 +91,26 @@ class VersionLock {
 
         try {
             fileHandle = await this._tryToOpenLockFile(startTime);
-            contents = await this._readLockFile(fileHandle);
-
-            const updatedContents = this._performModifications(contents, modifications);
-
-            await this._writeLockFile(fileHandle, updatedContents);
         } catch (error) {
-            logger.error(`Failed to acquire version lock on "${this.lockFilePath}" because: ${error.message}`);
-            contents = undefined;
+            throw new OSError(Reasons.LockCouldNotBeAcquired);
         }
 
-        // No need to wait.
-        if (fileHandle) {
-            AsyncOps.CloseFile(fileHandle);
+        try {
+            contents = await this._readLockFile(fileHandle);
+        } catch (error) {
+            // No need to wait for close to complete.
+            if (fileHandle) { AsyncOps.CloseFile(fileHandle); }
+            throw new OSError(Reasons.LockFileIsCorrupt);
+        }
+
+        const updatedContents = this._performModifications(contents, modifications);
+
+        try {
+            await this._writeLockFile(fileHandle, updatedContents);
+        } catch (error) {
+            // No need to wait for close to complete.
+            if (fileHandle) { AsyncOps.CloseFile(fileHandle); }
+            throw new OSError(Reasons.LockCouldNotBeWritten);
         }
 
         return contents;
