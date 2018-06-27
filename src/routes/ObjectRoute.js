@@ -4,7 +4,7 @@ const consola = require('consola');
 const HttpStatus = require('http-status-codes');
 const _ = require('lodash');
 
-const OSObjectHelper = require('../OSObjectHelper');
+const OSObjectHelper = require('../helpers/OSObjectHelper');
 
 const logger = consola.withScope('ObjectRoute');
 

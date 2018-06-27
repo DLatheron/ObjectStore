@@ -351,7 +351,7 @@ describe('#VersionLock', () => {
             assert.strictEqual(secondCall, true);
         });
 
-        it.only('should retry until the wait timeout is exceeded and then throw an error', async () => {
+        it('should retry until the wait timeout is exceeded and then throw an error', async () => {
             let tick = 0;
             sandbox.stub(AsyncOps, 'SafeOpenFile').returns(null);
             sandbox.stub(AsyncOps, 'WaitForTimeout').callsFake(() => {
