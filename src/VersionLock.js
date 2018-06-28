@@ -99,7 +99,7 @@ class VersionLock {
             contents = await this._readLockFile(fileHandle);
         } catch (error) {
             // No need to wait for close to complete.
-            if (fileHandle) { AsyncOps.CloseFile(fileHandle); }
+            AsyncOps.CloseFile(fileHandle);
             throw new OSError(Reasons.LockFileIsCorrupt);
         }
 
@@ -109,7 +109,7 @@ class VersionLock {
             await this._writeLockFile(fileHandle, updatedContents);
         } catch (error) {
             // No need to wait for close to complete.
-            if (fileHandle) { AsyncOps.CloseFile(fileHandle); }
+            AsyncOps.CloseFile(fileHandle);
             throw new OSError(Reasons.LockCouldNotBeWritten);
         }
 
