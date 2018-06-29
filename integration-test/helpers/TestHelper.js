@@ -57,8 +57,8 @@ function ObjectExists(objectDetails, { expectedVersion, expectedContents, expect
         return `objectDetails.objectId "${objectDetails.objectId}"is not a valid id`;
     }
 
-    if (expectedVersion && objectDetails.latestVersion !== expectedVersion) {
-        return `objectDetails.latestVersion was ${objectDetails.latestVersion} not ${expectedVersion}`;
+    if (expectedVersion && objectDetails.version !== expectedVersion) {
+        return `objectDetails.version was ${objectDetails.version} not ${expectedVersion}`;
     }
 
     if (!ObjectDirectoryExists(objectDetails.storeId, objectDetails.objectId)) {
@@ -69,7 +69,7 @@ function ObjectExists(objectDetails, { expectedVersion, expectedContents, expect
         const contentPath = MakeObjectContentPath(
             objectDetails.storeId,
             objectDetails.objectId,
-            objectDetails.latestVersion
+            objectDetails.version
         );
         const content = fs.readFileSync(contentPath);
 
@@ -82,7 +82,7 @@ function ObjectExists(objectDetails, { expectedVersion, expectedContents, expect
         const metadataPath = MakeObjectMetadataPath(
             objectDetails.storeId,
             objectDetails.objectId,
-            objectDetails.latestVersion
+            objectDetails.version
         );
         const metadata = JSON.parse(fs.readFileSync(metadataPath, { encoding: 'utf8' }));
 

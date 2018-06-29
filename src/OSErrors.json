@@ -6,37 +6,50 @@
     },
     "Reasons": {
         "Default": {
-            "reason": "Error - blocked reason not found",
+            "message": "Error - blocked reason not found",
             "category": "Default"
         },
         "ResourceNotAvailable": {
-            "reason": "The requested resource is not available at the moment",
+            "message": "The requested resource is not available at the moment",
             "category": "TransitoryFailure",
             "additionalReasonData": [ "storeId", "objectId" ],
             "additionalReasonDataSeparator": ", ",
             "description": "The resource is not available because it is in use by another operation, please wait a while and try again."
         },
         "LockCouldNotBeAcquired": {
-            "reason": "The locked for the resource could not be acquire at the moment",
+            "message": "The locked for the resource could not be acquire at the moment",
             "category": "TransitoryFailure",
             "additionalReasonData": [ "storeId", "objectId" ],
             "additionalReasonDataSeparator": ", ",
             "description": "The resource is not available because it is in use by another operation, please wait a while and try again."
         },
         "LockFileIsCorrupt": {
-            "reason": "The lock for the resource was acquired, but could not be read",
+            "message": "The lock for the resource was acquired, but could not be read",
             "category": "PermanentFailure",
             "additionalReasonData": [ "storeId", "objectId" ],
             "additionalReasonDataSeparator": ", ",
             "description": "The resources's lock file is probably corrupt - please contact your administrator who can regenerate it."
         },
         "LockCouldNotBeWritten": {
-            "reason": "The lock file for the resource could not be updated at the moment",
+            "message": "The lock file for the resource could not be updated at the moment",
             "category": "TransitoryFailure",
             "additionalReasonData": [ "storeId", "objectId" ],
             "additionalReasonDataSeparator": ", ",
             "description": "The resource is not available because it is in use by another operation, please wait a while and try again."
-
+        },
+        "ContentWriteError": {
+            "message": "An error occurred whilst trying to the write the object's data",
+            "category": "TransitoryFailure",
+            "additionalReasonData": [ "storeId", "objectId" ],
+            "additionalReasonDataSeparator": ", ",
+            "description": "The content or metadata could not be written - you will be given a special update key in order to retry."
+        },
+        "DirectoryFailure": {
+            "message": "An error occurred whilst attempting to create a directory for the object",
+            "category": "TransitoryFailure",
+            "additionalReasonData": [ "storeId", "objectId" ],
+            "additionalReasonDataSeparator": ", ",
+            "description": "The directory to store the object could not be created."
         }
     }
 }

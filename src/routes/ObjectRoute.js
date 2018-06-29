@@ -96,7 +96,7 @@ class ObjectRoute {
                     resolve({
                         storeId: osObject.storeId,
                         objectId: osObject.objectId,
-                        latestVersion: results.latestVersion
+                        version: results.version
                     });
                 }
             });

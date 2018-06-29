@@ -38,22 +38,22 @@ describe('#VersionLock', () => {
         it('should generate the name of the lock file', () => {
             const lock = new VersionLock('./subdir/path/');
 
-            assert.strictEqual(lock.lockFilePath, './subdir/path/.lockFile');
+            assert.strictEqual(lock.lockFilePath, './subdir/path/.versionLock');
         });
 
         it('should generate the name of the lock file if overridden', () => {
             const lock = new VersionLock('./subdir/path/', {
-                lockFilename: '.newLockFile'
+                lockFilename: '.newVersionLock'
             });
 
-            assert.strictEqual(lock.lockFilePath, './subdir/path/.newLockFile');
+            assert.strictEqual(lock.lockFilePath, './subdir/path/.newVersionLock');
         });
 
         context('options', () => {
             [
                 { optionName: 'retryInterval', defaultValue: 100, overriddenValue: 200 },
                 { optionName: 'waitTimeout', defaultValue: 1000, overriddenValue: 5000 },
-                { optionName: 'lockFilename', defaultValue: '.lockFile', overriddenValue: '.newLockFile' }
+                { optionName: 'lockFilename', defaultValue: '.versionLock', overriddenValue: '.newVersionLock' }
             ]
                 .forEach(({ optionName, defaultValue, overriddenValue}) => {
                     it(`should default '${optionName}' = ${defaultValue} as type ${typeof defaultValue}`, () =>{
@@ -85,7 +85,7 @@ describe('#VersionLock', () => {
                 .expects('_tryToOpenLockFile')
                 .withExactArgs(now.getTime())
                 .once();
-            sandbox.stub(versionLock, '_readLockFile').returns({ latestVersion: 0 });
+            sandbox.stub(versionLock, '_readLockFile').returns({ latestVersion: 1 });
             sandbox.stub(versionLock, '_performModifications').returns({ latestVersion: 1 });
             sandbox.stub(versionLock, '_writeLockFile');
             sandbox.stub(AsyncOps, 'CloseFile');
@@ -337,7 +337,7 @@ describe('#VersionLock', () => {
                 .expects('SafeOpenFile')
                 .withExactArgs(
                     versionLock.lockFilePath,
-                    'wx+'
+                    'r+'
                 )
                 .once()
                 .returns(fakeFileHandle);
@@ -421,7 +421,7 @@ describe('#VersionLock', () => {
         it('should attempt to size the lock file', async () => {
             sandbox.mock(AsyncOps)
                 .expects('GetFileSize')
-                .withExactArgs(versionLock.lockFilePath)
+                .withExactArgs(fakeFileHandle)
                 .once()
                 .returns(0);
             sandbox.stub(AsyncOps, 'ReadFile').returns({ bytesRead: 0 });
@@ -536,7 +536,10 @@ describe('#VersionLock', () => {
                 .expects('WriteFile')
                 .withExactArgs(
                     fakeFileHandle,
-                    fakeContentsInBuffer
+                    fakeContentsInBuffer,
+                    0,
+                    fakeContentsInBuffer.length,
+                    0
                 )
                 .once()
                 .returns({ bytesWritten: fakeContentsInBuffer.length });

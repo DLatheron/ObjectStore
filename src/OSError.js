@@ -11,9 +11,18 @@ _.forIn(
 );
 
 class OSError {
-    constructor(reason, message) {
+    constructor(reason, additionalData) {
         this.reason = reason;
-        this.message = message;
+        this.additionalData = additionalData;
+    }
+
+    get message() {
+        let message;
+
+        message = `${this.error.category}: ${this.reason.message}`;
+        message += (this.error.additionalReasonData || []).join(this.error.additionalReasonDataSeparator || ', ');
+
+        return message;
     }
 }
 

@@ -8,7 +8,7 @@ const { Reasons, OSError } = require('./OSError');
 const DEFAULT_OPTIONS = {
     retryInterval: 100, // milliseconds
     waitTimeout: 1000, // milliseconds
-    lockFilename: '.lockFile'
+    lockFilename: '.versionLock'
 };
 
 class VersionLock {
@@ -18,7 +18,7 @@ class VersionLock {
     }
 
     async _tryToOpenLockFile(startTime) {
-        let fileHandle = await AsyncOps.SafeOpenFile(this.lockFilePath, 'wx+');
+        let fileHandle = await AsyncOps.SafeOpenFile(this.lockFilePath, 'r+');
         if (!fileHandle) {
             do {
                 await AsyncOps.WaitForTimeout(this.options.retryInterval);
@@ -28,7 +28,7 @@ class VersionLock {
                     throw new Error(`Attempt to acquire lock on "${this.lockFilePath}" timed out (> ${this.options.waitTimeout}ms)`);
                 }
 
-                fileHandle = await AsyncOps.SafeOpenFile(this.lockFilePath, 'wx+');
+                fileHandle = await AsyncOps.SafeOpenFile(this.lockFilePath, 'r+');
             }
             while (!fileHandle);
         }
@@ -37,7 +37,7 @@ class VersionLock {
     }
 
     async _readLockFile(fileHandle) {
-        const fileSize = await AsyncOps.GetFileSize(this.lockFilePath);
+        const fileSize = await AsyncOps.GetFileSize(fileHandle);
         const buffer = new Buffer(fileSize);
 
         const readResult = await AsyncOps.ReadFile(
@@ -57,7 +57,7 @@ class VersionLock {
     async _writeLockFile(fileHandle, contents) {
         const buffer = new Buffer(JSON.stringify(contents), 'utf8');
 
-        const writeResult = await AsyncOps.WriteFile(fileHandle, buffer);
+        const writeResult = await AsyncOps.WriteFile(fileHandle, buffer, 0, buffer.length, 0);
         if (writeResult.bytesWritten !== buffer.length) {
             throw new Error(`Lock file "${this.lockFilePath}" was ${writeResult.bytesWritten} bytes not the expected size ${buffer.length} bytes`);
         }
@@ -82,6 +82,16 @@ class VersionLock {
         });
 
         return updatedContents;
+    }
+
+    async create(defaultData) {
+        const contents = JSON.stringify(defaultData);
+
+        try {
+            await AsyncOps.WriteWholeFile(this.lockFilePath, contents);
+        } catch (error) {
+            throw new OSError(Reasons.LockCouldNotBeWritten);
+        }
     }
 
     async getContents(modifications) {

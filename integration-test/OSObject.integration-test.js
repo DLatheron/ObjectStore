@@ -51,7 +51,7 @@ describe('Object Creation', () => {
         assert(!failure, failure);
     });
 
-    it('should update a previously created object', async () => {
+    it('should update a previously created object (once)', async () => {
         let objectDetails = await CreationHelper.CreateObject(
             storeId,
             fileMetadata.version1,
@@ -73,7 +73,7 @@ describe('Object Creation', () => {
         assert(!failure, failure);
     });
 
-    it('should update a previously created object', async () => {
+    it('should update a previously created object (multiple times)', async () => {
         let objectDetails = await CreationHelper.CreateObject(
             storeId,
             fileMetadata.version1,

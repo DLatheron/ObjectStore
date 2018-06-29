@@ -3,31 +3,72 @@
 const { promisify } = require('util');
 
 const fs = require('fs');
+const consola = require('consola');
+const logger = consola.withScope('AsyncOps');
 
-const OpenFile = promisify(fs.open);
-const CloseFile = promisify(fs.close);
-const DeleteFile = promisify(fs.unlink);
-const ReadFile = promisify(fs.read);
-const WriteFile = promisify(fs.write);
-const Stat = promisify(fs.stat);
-const WaitForTimeout = promisify(setTimeout);
+const _fsOpen = promisify(fs.open);
+const _fsClose = promisify(fs.close);
+const _fsUnlink = promisify(fs.unlink);
+const _fsRead = promisify(fs.read);
+const _fsWrite = promisify(fs.write);
+const _fsWriteFile = promisify(fs.writeFile);
+const _fsFstat = promisify(fs.fstat);
+const _setTimeout = promisify(setTimeout);
+const _mkdirp = promisify(require('mkdirp'));
+const _fsExists = promisify(fs.exists);
 
-module.exports = {
-    OpenFile,
-    SafeOpenFile: async () => {
+const AsyncOps = {
+    OpenFile: async (filename, mode) => {
+        return _fsOpen(filename, mode);
+    },
+    SafeOpenFile: async (filename, mode) => {
         try {
-            return await OpenFile(...arguments);
+            return await AsyncOps.OpenFile(filename, mode);
         } catch (error) {
             return null;
         }
     },
-    CloseFile,
-    DeleteFile,
-    ReadFile,
-    WriteFile,
-    Stat,
-    GetFileSize: async() => {
-        return await Stat(...arguments).size;
+    CloseFile: async (fd) => {
+        return await _fsClose(fd);
     },
-    WaitForTimeout
+    DeleteFile: async (path) => {
+        return await _fsUnlink(path);
+    },
+    ReadFile: async (fd, buffer, offset, length, position) => {
+        return await _fsRead(fd, buffer, offset, length, position);
+    },
+    WriteFile: async (fd, buffer, offset, length, position) => {
+        return await _fsWrite(fd, buffer, offset, length, position);
+    },
+    WriteWholeFile: async (path, data, options) => {
+        return await _fsWriteFile(path, data, options);
+    },
+    Stat: async (fd) => {
+        return await _fsFstat(fd);
+    },
+    GetFileSize: async (fd) => {
+        return (await AsyncOps.Stat(fd)).size;
+    },
+    CreateDirectory: async (path) => {
+        try {
+            await _mkdirp(path);
+            return true;
+        } catch (error) {
+            logger.fatal(`Failed to create directory "${path}" because of ${error}`);
+            return false;
+        }
+    },
+    DirectoryExists: async (path) => {
+        try {
+            await _fsExists(path);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    },
+    WaitForTimeout: async (timeInMs) => {
+        return await _setTimeout(timeInMs);
+    }
 };
+
+module.exports = AsyncOps;

@@ -3,30 +3,32 @@
 
 const assert = require('assert');
 const proxyquire = require('proxyquire');
-const OSObjectHelper = require('../src/helpers/OSObjectHelper');
 const sinon = require('sinon');
+
+const AsyncOps = require('../src/helpers/AsyncOps');
+const OSObject = require('../src/OSObject');
+const OSObjectHelper = require('../src/helpers/OSObjectHelper');
+const { Reasons } = require('../src/OSError');
 
 describe('#Store', () => {
     let sandbox;
-    let fakeOSObject;
-    let wrapper;
     let Store;
     let store;
+    let stubOSObject;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        fakeOSObject = {
-            _readDetails: () => true,
-            _writeDetails: () => true
-        };
-        wrapper = {
-            fakeOSObject: () => fakeOSObject
-        };
+        stubOSObject = new OSObject();
 
         Store = proxyquire('../src/Store', {
+            './helpers/AsyncOps': AsyncOps,
             './helpers/OSObjectHelper': OSObjectHelper,
             './OSObject': function() {
-                return wrapper.fakeOSObject(...arguments);
+                stubOSObject.storeId = arguments[0];
+                stubOSObject.objectId = arguments[1];
+                stubOSObject.basePath = arguments[2];
+
+                return stubOSObject;
             }
         });
     });
@@ -55,11 +57,24 @@ describe('#Store', () => {
         });
 
         it('should attempt to create a directory for the object', async () => {
-            sandbox.mock(OSObjectHelper)
+            sandbox.mock(AsyncOps)
                 .expects('CreateDirectory')
                 .withExactArgs('./Stores/store/Id/storeId/object/Id/objectId/')
                 .once()
                 .returns(true);
+            sandbox.stub(stubOSObject, 'createObject');
+
+            await store.createObject();
+
+            sandbox.verify();
+        });
+
+        it('should attempt to call create on the OSObject', async () => {
+            sandbox.stub(AsyncOps, 'CreateDirectory').returns(true);
+            sandbox.mock(stubOSObject)
+                .expects('createObject')
+                .withExactArgs()
+                .once();
 
             await store.createObject();
 
@@ -67,17 +82,23 @@ describe('#Store', () => {
         });
 
         it('should return an OSObject if object creation succeeds', async () => {
-            sandbox.stub(OSObjectHelper, 'CreateDirectory').returns(true);
+            sandbox.stub(AsyncOps, 'CreateDirectory').returns(true);
+            sandbox.stub(stubOSObject, 'createObject');
 
             const osObject = await store.createObject();
 
-            assert.strictEqual(osObject, fakeOSObject);
+            assert.strictEqual(osObject, stubOSObject);
         });
 
-        it('should return undefined if the object does not exist', async () => {
-            sandbox.stub(OSObjectHelper, 'CreateDirectory').returns(false);
+        it('should throw an error if the object directory could not be created', async () => {
+            sandbox.stub(AsyncOps, 'CreateDirectory').returns(false);
 
-            assert.strictEqual(await store.createObject(), undefined);
+            try {
+                assert.strictEqual(await store.createObject(), undefined);
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(error.reason, Reasons.DirectoryFailure);
+            }
         });
     });
 
@@ -93,15 +114,15 @@ describe('#Store', () => {
         });
 
         it('should return an object if it exists', async () => {
-            sandbox.stub(OSObjectHelper, 'DirectoryExists').returns(true);
+            sandbox.stub(AsyncOps, 'DirectoryExists').returns(true);
 
             const osObject = await store.getObject('objectId');
 
-            assert.strictEqual(osObject, fakeOSObject);
+            assert.strictEqual(osObject, stubOSObject);
         });
 
         it('should return undefined if the object does not exist', async () => {
-            sandbox.stub(OSObjectHelper, 'DirectoryExists').returns(false);
+            sandbox.stub(AsyncOps, 'DirectoryExists').returns(false);
 
             assert.strictEqual(await store.getObject('objectId'), undefined);
         });

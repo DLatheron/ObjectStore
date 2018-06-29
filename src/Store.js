@@ -2,9 +2,10 @@
 
 const _ = require('lodash');
 
+const AsyncOps = require('./helpers/AsyncOps');
 const OSObjectHelper = require('./helpers/OSObjectHelper');
 const OSObject = require('./OSObject');
-const OSObjectDetails = require('./ObjectDetails');
+const { Reasons, OSError } = require('./OSError');
 
 const DEFAULT_OPTIONS = {
     objectHierarchy: [3, 3],
@@ -28,25 +29,25 @@ class Store {
         const objectId = OSObjectHelper.GenerateId();
         const fullPath = this.basePath + this.buildObjectPath(objectId);
 
-        if (await OSObjectHelper.CreateDirectory(fullPath)) {
-            const osObject = new OSObject(this.storeId, objectId, fullPath);
-
-            osObject.details = new OSObjectDetails();
-            if (await osObject._writeDetails()) {
-                return osObject;
-            }
+        if (!await AsyncOps.CreateDirectory(fullPath)) {
+            throw new OSError(Reasons.DirectoryFailure, {
+                storeId: this.storeId,
+                objectId: this.objectId
+            });
         }
+
+        const osObject = new OSObject(this.storeId, objectId, fullPath);
+
+        await osObject.createObject();
+
+        return osObject;
     }
 
     async getObject(objectId) {
         const fullPath = this.basePath + this.buildObjectPath(objectId);
 
-        if (await OSObjectHelper.DirectoryExists(fullPath)) {
-            const osObject = new OSObject(this.storeId, objectId, fullPath);
-
-            if (await osObject._readDetails()) {
-                return osObject;
-            }
+        if (await AsyncOps.DirectoryExists(fullPath)) {
+            return new OSObject(this.storeId, objectId, fullPath);
         }
     }
 

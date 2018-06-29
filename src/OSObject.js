@@ -1,104 +1,46 @@
 'use strict';
 
-const consola = require('consola');
 const fs = require('fs');
-const logger = consola.withScope('Store');
-const { promisify } = require('util');
 
 require('padleft');
 
-const Lock = require('./Lock');
-const ObjectDetails = require('./ObjectDetails');
+const AsyncOps = require('./helpers/AsyncOps');
+const { Reasons, OSError } = require('./OSError');
+const VersionLock = require('./VersionLock');
 
-const padding = 6;
-const paddingCh = '0';
+const PADDING = 6;
+const PADDING_CH = '0';
+const FIRST_VERSION = 1;
 
 class OSObject {
     constructor(storeId, objectId, basePath) {
         this.storeId = storeId;
         this.objectId = objectId;
         this.basePath = basePath;
-        this.lock = new Lock(this.basePath);
-
-        // TODO: Only generate once - but this will break tests.
-        this.writeFile = promisify(fs.writeFile);
-        this.readFile = promisify(fs.readFile);
-        this.details = null;
     }
 
-    buildMetadataPath(version) {
+    _buildMetadataPath(version) {
         return this.basePath +
-            `metadata.v${version.toString().padLeft(padding, paddingCh)}.json`;
+            `metadata.v${version.toString().padLeft(PADDING, PADDING_CH)}.json`;
     }
 
-    async saveMetadata(metadata, version) {
-        const filePath = this.buildMetadataPath(version);
-        let success = true;
+    async _updateMetadata(version, metadata) {
+        if (metadata) {
+            const metadataFilename = this._buildMetadataPath(version);
 
-        try {
-            if (!await Lock.Acquire(this.lock)) {
-                throw new Error('Unable to lock file at this time - please try again');
-            }
-            await this.writeFile(filePath, metadata);
-        } catch (error) {
-            logger.error(`Unable to create file '${filePath}' because: '${error}'`);
-            success = false;
+            await AsyncOps.WriteWholeFile(metadataFilename, JSON.stringify(metadata, null, 4));
         }
-
-        await Lock.Release(this.lock);
-
-        return success;
     }
 
-    buildContentPath(version) {
+    _buildContentPath(version) {
         return this.basePath +
-            `content.v${version.toString().padLeft(padding, paddingCh)}.bin`;
+            `content.v${version.toString().padLeft(PADDING, PADDING_CH)}.bin`;
     }
 
-    async saveContent(content, version) {
-        const filePath = this.buildMetadataPath(version);
-
-        try {
-            await this.writeFile(filePath, content);
-
-            return true;
-        } catch (error) {
-            logger.error(`Unable to create directory '${filePath}' because: '${error}'`);
-            return false;
-        }
-    }
-
-    buildDetailsPath() {
-        return this.basePath + 'details.json';
-    }
-
-    async _readDetails() {
-        const detailsPath = this.buildDetailsPath();
-
-        try {
-            const contents = await this.readFile(detailsPath);
-            const jsonContents = JSON.parse(contents);
-
-            this.details = new ObjectDetails(jsonContents);
-
-            return this.details;
-        } catch (error) {
-            logger.error(`Unable to read file '${detailsPath}' because: '${error}'`);
-            return false;
-        }
-    }
-
-    async _writeDetails() {
-        const detailsPath = this.buildDetailsPath();
-
-        await this.writeFile(detailsPath, JSON.stringify(this.details, null, 4), 'utf8');
-        return true;
-    }
-
-    _updateContent(version, incomingStream) {
+    async _updateContent(version, incomingStream) {
         if (incomingStream) {
-            return new Promise((resolve, reject) => {
-                const contentFilename = this.buildContentPath(version);
+            return await new Promise((resolve, reject) => {
+                const contentFilename = this._buildContentPath(version);
                 const newVersionStream = fs.createWriteStream(contentFilename);
                 incomingStream.pipe(newVersionStream);
 
@@ -113,44 +55,52 @@ class OSObject {
         }
     }
 
-    async _updateMetadata(version, metadata) {
-        if (metadata) {
-            const metadataFilename = this.buildMetadataPath(version);
+    async createObject() {
+        const versionLock = new VersionLock(this.basePath);
 
-            await this.writeFile(metadataFilename, JSON.stringify(metadata, null, 4));
-        }
+        await versionLock.create({ latestVersion: FIRST_VERSION });
+
+        return {
+            storeId: this.storeId,
+            objectId: this.objectId,
+            version: 0
+        };
     }
 
     async updateObject(incomingStream, metadata) {
+        const versionLock = new VersionLock(this.basePath);
+        let lockContents;
+
         try {
-            if (!await Lock.Acquire(this.lock)) {
-                throw new Error('Unable to lock file at this time - please try again');
-            }
-
-            const details = await this._readDetails();
-            details.latestVersion++;
-
-            await this._updateContent(details.latestVersion, incomingStream);
-            await this._updateMetadata(details.latestVersion, metadata);
-            await this._writeDetails(details);
-            await Lock.Release(this.lock);
-
-            return {
-                storeId: this.storeId,
-                objectId: this.objectId,
-                latestVersion: details.latestVersion
-            };
+            lockContents = await versionLock.getContents({
+                latestVersion: currentVersion => currentVersion + 1
+            });
         } catch (error) {
-            await Lock.Release(this.lock);
-            return;
+            error.additionalData = {
+                storeId: this.storeId,
+                objectId: this.objectId
+            };
+            throw error;
         }
+
+        const { latestVersion } = lockContents;
+
+        try {
+            await this._updateContent(latestVersion, incomingStream);
+            await this._updateMetadata(latestVersion, metadata);
+        } catch (error) {
+            throw new OSError(Reasons.ContentWriteError, {
+                storeId: this.storeId,
+                objectId: this.objectId
+            });
+        }
+
+        return {
+            storeId: this.storeId,
+            objectId: this.objectId,
+            version: latestVersion
+        };
     }
-
-    // saveContent(content, version) {
-
-    // }
-
-    // saveStream(stream, version) {}
 
     // TODO: What functions do we need?
     // - Get the current version;
