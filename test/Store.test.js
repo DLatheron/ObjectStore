@@ -1,4 +1,4 @@
-/* globals describe, it, beforeEach, afterEach */
+/* globals describe, it, context, beforeEach, afterEach */
 'use strict';
 
 const assert = require('assert');
@@ -39,10 +39,55 @@ describe('#Store', () => {
     });
 
     describe('#constructor', () => {
+        it('should record the store id', () => {
+            store = new Store('storeId');
+            assert.strictEqual(store.storeId, 'storeId');
+        });
 
+        it('should store the base path', () => {
+            store = new Store(undefined, './basePath/');
+            assert.strictEqual(store.basePath, './basePath/');
+        });
+
+        context('options', () => {
+            [
+                { optionName: 'objectHierarchy', defaultValue: [3, 3], overriddenValue: [2, 4, 5] },
+                { optionName: 'pathSeparator', defaultValue: '/', overriddenValue: '\\' }
+            ]
+                .forEach(({ optionName, defaultValue, overriddenValue}) => {
+                    it(`should default '${optionName}' = ${defaultValue} as type ${typeof defaultValue}`, () =>{
+                        store = new Store();
+
+                        assert.deepStrictEqual(store.options[optionName], defaultValue);
+                    });
+
+                    it('should merge the options', () => {
+                        it(`should all '${optionName}' to be overridden to ${overriddenValue}`, () => {
+                            store = new Store(undefined, undefined, {
+                                [optionName]: overriddenValue
+                            });
+
+                            assert.deepStrictEqual(store.options[optionName], overriddenValue);
+                        });
+                    });
+                });
+        });
     });
 
     describe('#buildObjectPath', () => {
+        [
+            { objectId: 'objectId', objectHierarchy: [3, 3], expectedPath: 'obj/ect/objectId/' },
+            { objectId: 'objectId', objectHierarchy: [6, 2], expectedPath: 'object/Id/objectId/' }
+        ]
+            .forEach(({ objectId, objectHierarchy, expectedPath}) => {
+                it(`should generate the path ${expectedPath} for object id ${objectId} and the hierarchy ${objectHierarchy}`, () => {
+                    store = new Store(undefined, undefined, { objectHierarchy });
+                    assert.strictEqual(
+                        store.buildObjectPath(objectId),
+                        expectedPath
+                    );
+                });
+            });
     });
 
     describe('#createObject', () => {
@@ -126,9 +171,5 @@ describe('#Store', () => {
 
             assert.strictEqual(await store.getObject('objectId'), undefined);
         });
-    });
-
-    describe('#updateObject', () => {
-
     });
 });

@@ -51,7 +51,6 @@ describe('#Object', () => {
         it('should store the base path', () => {
             osObject = new OSObject(undefined, undefined, './basePath/');
             assert.strictEqual(osObject.basePath, './basePath/');
-
         });
     });
 
