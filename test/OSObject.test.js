@@ -8,6 +8,7 @@ const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 
 const AsyncOps = require('../src/helpers/AsyncOps');
+const { Reasons, OSError } = require('../src/OSError');
 const VersionLock = require('../src/VersionLock');
 // const UnitTestHelper = require('./helpers/UnitTestHelper');
 
@@ -238,7 +239,7 @@ describe('#Object', () => {
             };
         });
 
-        it('should attempt to acquire a version lock', async () => {
+        it('should create a new version lock', async () => {
             sandbox.mock(wrapper)
                 .expects('VersionLock')
                 .withExactArgs(osObject.basePath)
@@ -250,7 +251,7 @@ describe('#Object', () => {
             sandbox.verify();
         });
 
-        it(`should create an object starting a version ${expectedFirstVersion}`, async () => {
+        it(`should attempt to create a version lock start at version ${expectedFirstVersion}`, async () => {
             sandbox.mock(fakeVersionLock)
                 .expects('create')
                 .withExactArgs({ latestVersion: expectedFirstVersion })
@@ -290,14 +291,148 @@ describe('#Object', () => {
     });
 
     describe('#updateObject', () => {
-        it('should attempt to acquire a version lock');
-        it('should increment the version number');
-        it('should throw an error if the lock cannot be obtained');
+        let fakeVersionLock;
+        let testStream;
+        let testMetadata;
 
-        it('should attempt to write the content');
-        it('should attempt to write the metadata');
-        it('should throw an error if the content write fails');
-        it('should throw an error if the metadata write fails');
-        it('should return access details for the created object version');
+        beforeEach(() => {
+            osObject = new OSObject('storeId', 'objectId', './basePath/');
+
+            fakeVersionLock = {
+                getContents: () => { return { latestVerstion: 0 }; }
+            };
+            testStream = {
+                message: 'this is a test stream'
+            };
+            testMetadata = {
+                message: 'this is some test metadata'
+            };
+        });
+
+        it('should create a new version lock', async () => {
+            sandbox.mock(wrapper)
+                .expects('VersionLock')
+                .withExactArgs(osObject.basePath)
+                .once()
+                .returns(fakeVersionLock);
+            sandbox.stub(osObject, '_updateContent');
+            sandbox.stub(osObject, '_updateMetadata');
+
+            await osObject.updateObject();
+
+            sandbox.verify();
+        });
+
+        it('should increment the version number', async () => {
+            sandbox.stub(wrapper, 'VersionLock').returns(fakeVersionLock);
+            sandbox.mock(fakeVersionLock)
+                .expects('getContents')
+                .withExactArgs({ latestVersion: sinon.match.func })
+                .once()
+                .returns({ latestVersion: 1 });
+            sandbox.stub(osObject, '_updateContent');
+            sandbox.stub(osObject, '_updateMetadata');
+
+            await osObject.updateObject();
+
+            sandbox.verify();
+        });
+
+        it('should throw an error if the lock cannot be obtained', async () => {
+            const expectedError = new Error('getContents threw this error');
+
+            sandbox.stub(wrapper, 'VersionLock').returns(fakeVersionLock);
+            sandbox.stub(fakeVersionLock, 'getContents').throws(expectedError);
+
+            try {
+                await osObject.updateObject();
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(error, expectedError);
+            }
+        });
+
+        it('should attempt to write the content', async () => {
+            sandbox.stub(wrapper, 'VersionLock').returns(fakeVersionLock);
+            sandbox.stub(fakeVersionLock, 'getContents').returns({ latestVersion: 14 });
+            sandbox.mock(osObject)
+                .expects('_updateContent')
+                .withExactArgs(14, testStream)
+                .once();
+            sandbox.stub(osObject, '_updateMetadata');
+
+            await osObject.updateObject(testStream);
+
+            sandbox.verify();
+        });
+
+        it('should attempt to write the metadata', async () => {
+            sandbox.stub(wrapper, 'VersionLock').returns(fakeVersionLock);
+            sandbox.stub(fakeVersionLock, 'getContents').returns({ latestVersion: 57 });
+            sandbox.stub(osObject, '_updateContent');
+            sandbox.mock(osObject)
+                .expects('_updateMetadata')
+                .withExactArgs(57, testMetadata)
+                .once();
+
+            await osObject.updateObject(undefined, testMetadata);
+
+            sandbox.verify();
+        });
+
+        it('should throw an error if the content write fails', async () => {
+            sandbox.stub(wrapper, 'VersionLock').returns(fakeVersionLock);
+            sandbox.stub(fakeVersionLock, 'getContents').returns({ latestVersion: 14 });
+            sandbox.stub(osObject, '_updateContent').throws('Any error');
+
+            try {
+                await osObject.updateObject();
+                assert.fail();
+            } catch (error) {
+                assert.deepStrictEqual(
+                    error,
+                    new OSError(Reasons.ContentWriteError, {
+                        storeId: osObject.storeId,
+                        objectId: osObject.objectId
+                    })
+                );
+            }
+        });
+
+        it('should throw an error if the metadata write fails', async () => {
+            sandbox.stub(wrapper, 'VersionLock').returns(fakeVersionLock);
+            sandbox.stub(fakeVersionLock, 'getContents').returns({ latestVersion: 14 });
+            sandbox.stub(osObject, '_updateContent');
+            sandbox.stub(osObject, '_updateMetadata').throws('Any error');
+
+            try {
+                await osObject.updateObject();
+                assert.fail();
+            } catch (error) {
+                assert.deepStrictEqual(
+                    error,
+                    new OSError(Reasons.ContentWriteError, {
+                        storeId: osObject.storeId,
+                        objectId: osObject.objectId
+                    })
+                );
+            }
+        });
+
+        it('should return access details for the created object version', async () => {
+            sandbox.stub(wrapper, 'VersionLock').returns(fakeVersionLock);
+            sandbox.stub(fakeVersionLock, 'getContents').returns({ latestVersion: 37 });
+            sandbox.stub(osObject, '_updateContent');
+            sandbox.stub(osObject, '_updateMetadata');
+
+            assert.deepStrictEqual(
+                await osObject.updateObject(),
+                {
+                    storeId: osObject.storeId,
+                    objectId: osObject.objectId,
+                    version: 37
+                }
+            );
+        });
     });
 });
