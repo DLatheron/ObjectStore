@@ -63,7 +63,7 @@ class OSObject {
         return {
             storeId: this.storeId,
             objectId: this.objectId,
-            version: 0
+            version: FIRST_VERSION
         };
     }
 

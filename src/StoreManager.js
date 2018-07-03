@@ -1,11 +1,9 @@
 'use strict';
 
-const { promisify } = require('util');
-
 const consola = require('consola');
-const fs = require('fs-extra');
 const _ = require('lodash');
 
+const AsyncOps = require('./helpers/AsyncOps');
 const OSObjectHelper = require('./helpers/OSObjectHelper');
 const Store = require('./Store');
 
@@ -21,8 +19,6 @@ const DEFAULT_OPTIONS = {
 class StoreManager {
     constructor(options) {
         this.options = _.merge({}, DEFAULT_OPTIONS, options);
-
-        this.remove = promisify(fs.remove);
     }
 
     buildStorePath(storeId) {
@@ -35,7 +31,7 @@ class StoreManager {
         const storeId = OSObjectHelper.GenerateId();
         const storePath = this.options.basePath + this.buildStorePath(storeId);
 
-        if (await OSObjectHelper.CreateDirectory(storePath)) {
+        if (await AsyncOps.CreateDirectory(storePath)) {
             return new Store(storeId, storePath, this.options);
         }
     }
@@ -43,7 +39,7 @@ class StoreManager {
     async getStore(storeId) {
         const storePath = this.options.basePath + this.buildStorePath(storeId);
 
-        if (await OSObjectHelper.DirectoryExists(storePath)) {
+        if (await AsyncOps.DirectoryExists(storePath)) {
             return new Store(storeId, storePath, this.options);
         }
     }
@@ -52,7 +48,7 @@ class StoreManager {
         const storePath = this.options.basePath + this.buildStorePath(storeId);
 
         try {
-            await this.remove(storePath);
+            await AsyncOps.DeleteFile(storePath);
             return true;
         } catch (error) {
             logger.error(`Failed to delete store ${storeId} because of ${error}`);

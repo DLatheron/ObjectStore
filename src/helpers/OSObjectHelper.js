@@ -2,15 +2,7 @@
 
 'use strict';
 
-const { promisify } = require('util');
-
-const consola = require('consola');
-
-const exists = promisify(require('fs').exists);
-const mkdirp = promisify(require('mkdirp'));
 const uuid = require('uuid/v4');
-
-const logger = consola.withScope('OSObjectHelper');
 
 const idRegex = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
 
@@ -20,25 +12,6 @@ function GenerateId() {
 
 function IsValidId(id) {
     return !!id.match(idRegex);
-}
-
-async function CreateDirectory(path) {
-    try {
-        await mkdirp(path);
-        return true;
-    } catch (error) {
-        logger.fatal(`Failed to create directory "${path}" because of ${error}`);
-        return false;
-    }
-}
-
-async function DirectoryExists(path) {
-    try {
-        await exists(path);
-        return true;
-    } catch (error) {
-        return false;
-    }
 }
 
 function IdToPath(id, hierarchy, pathSeparator) {
@@ -58,7 +31,5 @@ function IdToPath(id, hierarchy, pathSeparator) {
 module.exports = {
     GenerateId,
     IsValidId,
-    CreateDirectory,
-    DirectoryExists,
     IdToPath
 };

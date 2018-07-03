@@ -1,18 +1,11 @@
 /* globals describe, it, beforeEach, afterEach */
 'use strict';
 
-const { promisify } = require('util');
-
 const assert = require('assert');
 const consola = require('consola');
-const exists = promisify(require('fs').exists);
-const logger = consola.withScope('OSObjectHelper');
 const proxyquire = require('proxyquire');
-const mkdirp = promisify(require('mkdirp'));
 const sinon = require('sinon');
 const uuid = require('uuid/v4');
-
-// const UnitTestHelper = require('./helpers/UnitTestHelper');
 
 describe('#OSObjectHelper', () => {
     let sandbox;
@@ -22,15 +15,10 @@ describe('#OSObjectHelper', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         wrapper = {
-            uuid,
-            mkdirp,
-            exists
+            uuid
         };
 
         OSObjectHelper = proxyquire('../src/helpers/OSObjectHelper', {
-            'consola': { withScope: () => logger },
-            'fs': { exists: function() { return wrapper.exists(...arguments); } },
-            'mkdirp': function() { return wrapper.mkdirp(...arguments); },
             'uuid/v4': function() { return wrapper.uuid(...arguments); },
         });
 
@@ -62,74 +50,9 @@ describe('#OSObjectHelper', () => {
         });
     });
 
-    describe('#CreateDirectory', () => {
-        it('should call "mkdirp" with the path', async () => {
-            sandbox.mock(wrapper)
-                .expects('mkdirp')
-                .withExactArgs(
-                    './expected/path/',
-                    sinon.match.func
-                )
-                .once()
-                .yields();
-
-            await OSObjectHelper.CreateDirectory('./expected/path/');
-
-            sandbox.verify();
-        });
-
-        it('should return true if directories are successfully created', async () => {
-            sandbox.stub(wrapper, 'mkdirp').yields();
-
-            assert.strictEqual(await OSObjectHelper.CreateDirectory('./expected/path/'), true);
-        });
-
-        it('should return false if directory creation fails', async () => {
-            sandbox.stub(wrapper, 'mkdirp').yields('Error');
-
-            assert.strictEqual(await OSObjectHelper.CreateDirectory('./expected/path/'), false);
-        });
-
-        it('should log a fatal error if directory creation fails', async () => {
-            sandbox.stub(wrapper, 'mkdirp').yields('Error');
-            sandbox.mock(logger)
-                .expects('fatal')
-                .withExactArgs('Failed to create directory "./expected/path/" because of Error')
-                .once();
-
-            await OSObjectHelper.CreateDirectory('./expected/path/');
-
-            sandbox.verify();
-        });
-    });
-
-    describe('#DirectoryExists', () => {
-        it('should call "exists" with the path', async () => {
-            sandbox.mock(wrapper)
-                .expects('exists')
-                .withExactArgs(
-                    './expected/path/',
-                    sinon.match.func
-                )
-                .once()
-                .yields();
-
-            await OSObjectHelper.DirectoryExists('./expected/path/');
-
-            sandbox.verify();
-        });
-
-        it('should return true if the directories exist', async () => {
-            sandbox.stub(wrapper, 'exists').yields();
-
-            assert.strictEqual(await OSObjectHelper.DirectoryExists('./expected/path'), true);
-        });
-
-        it('should return false if any of the directories do not exist', async () => {
-            sandbox.stub(wrapper, 'exists').yields('Error');
-
-            assert.strictEqual(await OSObjectHelper.DirectoryExists('./expected/path'), false);
-        });
+    describe('#IsValidId', () => {
+        it('should return true if the id is valid');
+        it('should return false if the id is invalid');
     });
 
     describe('#IdToPath', () => {
