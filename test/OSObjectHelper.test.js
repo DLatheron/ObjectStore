@@ -51,8 +51,26 @@ describe('#OSObjectHelper', () => {
     });
 
     describe('#IsValidId', () => {
-        it('should return true if the id is valid');
-        it('should return false if the id is invalid');
+        [
+            { id: '123e4567-e89b-42d3-a456-426655440000', expectedResult: true },
+            { id: '123E4567-E89B-42D3-A456-426655440000', expectedResult: true },
+            { id: '123e4567e89b-32d3-a456-426655440000', expectedResult: false },
+            { id: '123e4567e89b-42d3-a456-426655440000', expectedResult: false },
+            { id: 'h23e4567e89b-42d3-a456-426655440000', expectedResult: false },
+            { id: 'string', expectedResult: false },
+            { id: '', expectedResult: false },
+            { id: null, expectedResult: false },
+            { id: undefined, expectedResult: false },
+            { id: 0, expectedResult: false },
+            { id: 1235, expectedResult: false },
+            { id: false, expectedResult: false },
+            { id: true, expectedResult: false },
+        ]
+            .forEach(({ id, expectedResult }) => {
+                it(`should return ${expectedResult} if the id is ${id}`, () => {
+                    assert.strictEqual(OSObjectHelper.IsValidId(id), expectedResult);
+                });
+            });
     });
 
     describe('#IdToPath', () => {

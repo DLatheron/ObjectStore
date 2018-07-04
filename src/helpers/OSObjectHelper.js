@@ -11,7 +11,10 @@ function GenerateId() {
 }
 
 function IsValidId(id) {
-    return !!id.match(idRegex);
+    if (!id) {
+        return false;
+    }
+    return !!id.toString().match(idRegex);
 }
 
 function IdToPath(id, hierarchy, pathSeparator) {
