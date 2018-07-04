@@ -1,7 +1,8 @@
-/* globals describe, it, beforeEach, afterEach */
+/* globals describe, it, context, beforeEach, afterEach */
 'use strict';
 
 const assert = require('assert');
+const consola = require('consola');
 const sinon = require('sinon');
 
 const AsyncOps = require('../src/helpers/AsyncOps');
@@ -17,7 +18,8 @@ describe('#StoreManager', () => {
         sandbox = sinon.createSandbox();
 
         StoreManager = require('../src/StoreManager');
-        storeManager = new StoreManager({ storeHierarchy: [5, 2]});
+
+        consola.clear();
     });
 
     afterEach(() => {
@@ -26,13 +28,55 @@ describe('#StoreManager', () => {
     });
 
     describe('#constructor', () => {
-        it('should set default options');
-        it('should allow options to be overridden');
+        context('options', () => {
+            [
+                { optionName: 'storeHierarchy', defaultValue: [3, 3], overriddenValue: [3, 3, 5] },
+                { optionName: 'objectHierarchy', defaultValue: [3, 3], overriddenValue: [2, 4, 5] },
+                { optionName: 'pathSeparator', defaultValue: '/', overriddenValue: '\\' },
+                { optionName: 'basePath', defaultValue: './Stores/', overriddenValue: './SubDir/MyStores/' }
+            ]
+                .forEach(({ optionName, defaultValue, overriddenValue}) => {
+                    it(`should default '${optionName}' = ${defaultValue} as type ${typeof defaultValue}`, () =>{
+                        storeManager = new StoreManager();
+
+                        assert.deepStrictEqual(storeManager.options[optionName], defaultValue);
+                    });
+
+                    it('should merge the options', () => {
+                        it(`should all '${optionName}' to be overridden to ${overriddenValue}`, () => {
+                            storeManager = new StoreManager({
+                                [optionName]: overriddenValue
+                            });
+
+                            assert.deepStrictEqual(storeManager.options[optionName], overriddenValue);
+                        });
+                    });
+                });
+        });
+    });
+
+
+    describe('#buildStorePath', () => {
+        [
+            { storeId: 'storeId', storeHierarchy: [3, 3], pathSeparator: '/', expectedPath: 'sto/reI/storeId/' },
+            { storeId: 'storeId', storeHierarchy: [5, 2], pathSeparator: '/', expectedPath: 'store/Id/storeId/' },
+            { storeId: 'storeId', storeHierarchy: [5, 2], pathSeparator: '\\', expectedPath: 'store\\Id\\storeId\\' }
+        ]
+            .forEach(({ storeId, storeHierarchy, pathSeparator, expectedPath}) => {
+                it(`should generate the path ${expectedPath} for store id ${storeId} and the hierarchy ${storeHierarchy}`, () => {
+                    storeManager = new StoreManager({ storeHierarchy, pathSeparator });
+                    assert.strictEqual(
+                        storeManager.buildStorePath(storeId),
+                        expectedPath
+                    );
+                });
+            });
     });
 
     describe('#createStore', () => {
         beforeEach(() => {
             sandbox.stub(OSObjectHelper, 'GenerateId').returns('storeId');
+            storeManager = new StoreManager({ storeHierarchy: [5, 2]});
         });
 
         it('should attempt to create a store', async () => {
@@ -82,9 +126,36 @@ describe('#StoreManager', () => {
     });
 
     describe('#deleteStore', () => {
-        it('should attempt to delete the specified store (and sub-directories)');
-        it('should return true if the operation is successful');
-        it('should throw an error if the operation fails');
-        it('should not attempt to delete a store that does not exist');
+        beforeEach(() => {
+            storeManager = new StoreManager({
+                basePath: './basePath/',
+                storeHierarchy: [5, 2]
+            });
+        });
+
+        it('should attempt to delete the specified store (and sub-directories)', async () => {
+            sandbox.mock(AsyncOps)
+                .expects('DeleteFile')
+                .withExactArgs('./basePath/store/Id/storeId/')
+                .once();
+
+            await storeManager.deleteStore('storeId');
+
+            sandbox.verify();
+        });
+
+        it('should return true if the operation is successful', async () => {
+            sandbox.stub(AsyncOps, 'DeleteFile');
+
+            assert.strictEqual(await storeManager.deleteStore('storeId'), true);
+        });
+
+        it('should return false if the operation fails', async () => {
+            const expectedError = new Error('DeleteFile threw this error');
+
+            sandbox.stub(AsyncOps, 'DeleteFile').throws(expectedError);
+
+            assert.strictEqual(await storeManager.deleteStore('storeId'), false);
+        });
     });
 });

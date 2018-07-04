@@ -76,12 +76,13 @@ describe('#Store', () => {
 
     describe('#buildObjectPath', () => {
         [
-            { objectId: 'objectId', objectHierarchy: [3, 3], expectedPath: 'obj/ect/objectId/' },
-            { objectId: 'objectId', objectHierarchy: [6, 2], expectedPath: 'object/Id/objectId/' }
+            { objectId: 'objectId', objectHierarchy: [3, 3], pathSeparator: '/', expectedPath: 'obj/ect/objectId/' },
+            { objectId: 'objectId', objectHierarchy: [6, 2], pathSeparator: '/', expectedPath: 'object/Id/objectId/' },
+            { objectId: 'objectId', objectHierarchy: [6, 2], pathSeparator: '\\', expectedPath: 'object\\Id\\objectId\\' }
         ]
-            .forEach(({ objectId, objectHierarchy, expectedPath}) => {
-                it(`should generate the path ${expectedPath} for object id ${objectId} and the hierarchy ${objectHierarchy}`, () => {
-                    store = new Store(undefined, undefined, { objectHierarchy });
+            .forEach(({ objectId, objectHierarchy, pathSeparator, expectedPath}) => {
+                it(`should generate the path ${expectedPath} (with separator ${pathSeparator}) for object id ${objectId} and the hierarchy ${objectHierarchy}`, () => {
+                    store = new Store(undefined, undefined, { objectHierarchy, pathSeparator });
                     assert.strictEqual(
                         store.buildObjectPath(objectId),
                         expectedPath
