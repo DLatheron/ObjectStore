@@ -13,7 +13,6 @@ const _fsRead = promisify(fs.read);
 const _fsWrite = promisify(fs.write);
 const _fsWriteFile = promisify(fs.writeFile);
 const _fsFstat = promisify(fs.fstat);
-const _setTimeout = promisify(setTimeout);
 const _mkdirp = promisify(require('mkdirp'));
 const _fsExists = promisify(fs.exists);
 
@@ -67,7 +66,13 @@ const AsyncOps = {
         }
     },
     WaitForTimeout: async (timeInMs) => {
-        return await _setTimeout(timeInMs);
+        return await new Promise(async (resolve, reject) => {
+            try {
+                setTimeout(resolve, timeInMs);
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 };
 

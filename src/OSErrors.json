@@ -10,10 +10,9 @@
             "category": "Default"
         },
         "ResourceNotAvailable": {
-            "message": "The requested resource is not available at the moment",
+            "message": "The requested resource is not available at the moment - StoreId: ${storeId}, ObjectId: ${objectId}",
             "category": "TransitoryFailure",
             "additionalReasonData": [ "storeId", "objectId" ],
-            "additionalReasonDataSeparator": ", ",
             "description": "The resource is not available because it is in use by another operation, please wait a while and try again."
         },
         "LockCouldNotBeAcquired": {

@@ -75,6 +75,12 @@ describe('#VersionLock', () => {
         });
     });
 
+    describe('#create', () => {
+        it('should convert the passed data to JSON');
+        it('should attempt to write the whole file');
+        it('should throw an OSError if the write operation fails');
+    });
+
     describe('#getContents', () => {
         beforeEach(() => {
             versionLock = new VersionLock();

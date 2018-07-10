@@ -10,7 +10,6 @@ const sinon = require('sinon');
 const AsyncOps = require('../src/helpers/AsyncOps');
 const { Reasons, OSError } = require('../src/OSError');
 const VersionLock = require('../src/VersionLock');
-// const UnitTestHelper = require('./helpers/UnitTestHelper');
 
 describe('#Object', () => {
     let sandbox;
@@ -322,19 +321,27 @@ describe('#Object', () => {
             sandbox.verify();
         });
 
-        it('should increment the version number', async () => {
-            sandbox.stub(wrapper, 'VersionLock').returns(fakeVersionLock);
-            sandbox.mock(fakeVersionLock)
-                .expects('getContents')
-                .withExactArgs({ latestVersion: sinon.match.func })
-                .once()
-                .returns({ latestVersion: 1 });
+        it('should increment the version number for the next call', async () => {
+            const versionLockMock = new VersionLock();
+            const fakeFileHandle = 8532;
+            const latestVersion = 1234;
+            sandbox.stub(wrapper, 'VersionLock').returns(versionLockMock);
+            sandbox.stub(versionLockMock, '_tryToOpenLockFile').returns(fakeFileHandle);
+            sandbox.stub(versionLockMock, '_readLockFile').returns({ latestVersion });
+            sandbox.mock(versionLockMock)
+                .expects('_writeLockFile')
+                .withExactArgs(
+                    fakeFileHandle,
+                    { latestVersion: latestVersion + 1 }
+                )
+                .once();
+
             sandbox.stub(osObject, '_updateContent');
             sandbox.stub(osObject, '_updateMetadata');
 
-            await osObject.updateObject();
+            const results = await osObject.updateObject();
 
-            sandbox.verify();
+            assert.strictEqual(results.version, latestVersion);
         });
 
         it('should throw an error if the lock cannot be obtained', async () => {

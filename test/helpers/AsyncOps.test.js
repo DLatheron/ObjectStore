@@ -6,26 +6,66 @@ const { promisify } = require('util');
 const assert = require('assert');
 const consola = require('consola');
 const logger = consola.withScope('AsyncOps');
-const exists = promisify(require('fs').exists);
 const proxyquire = require('proxyquire');
 const mkdirp = promisify(require('mkdirp'));
 const sinon = require('sinon');
 
 describe('#AsyncOps', () => {
     let sandbox;
+    let now;
+    let clock;
     let wrapper;
     let AsyncOps;
+    let expectedResult;
+    let expectedError;
+    let originalSetTimeout;
+
+    function buildIntermediate(wrapper) {
+        const intermediateWrapper = {};
+
+        Object.keys(wrapper).forEach(key => {
+            intermediateWrapper[key] = function() {
+                return wrapper[key](...arguments);
+            };
+        });
+
+        return intermediateWrapper;
+    }
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        now = Date.now();
+        clock = sandbox.useFakeTimers(now);
+
         wrapper = {
             mkdirp,
-            exists
+            open: () => {},
+            close: () => {},
+            unlink: () => {},
+            read: () => {},
+            write: () => {},
+            writeFile: () => {},
+            fstat: () => {},
+            exists: () => {},
+            setTimeout
+        };
+        expectedResult = {
+            message: 'a fake result was returned',
+            isSameInstance: true
+        };
+        expectedError = {
+            message: 'an expected error occurred',
+            isSameInstance: true
+        };
+
+        originalSetTimeout = global.setTimeout;
+        global.setTimeout = function() {
+            return wrapper.setTimeout(...arguments);
         };
 
         AsyncOps = proxyquire('../../src/helpers/AsyncOps', {
             'consola': { withScope: () => logger },
-            'fs': { exists: function() { return wrapper.exists(...arguments); } },
+            'fs': buildIntermediate(wrapper),
             'mkdirp': function() { return wrapper.mkdirp(...arguments); },
         });
 
@@ -34,43 +74,144 @@ describe('#AsyncOps', () => {
 
     afterEach(() => {
         sandbox.verify();
+        clock.restore();
         sandbox.restore();
+
+        global.setTimeout = originalSetTimeout;
     });
 
-    describe('#OpenFile', () => {
-        it('should asynchronously call fs.open');
-        it('should return the file handle returned by fs.open');
-        it('should throw an error if fs.open fails');
-    });
+    [
+        {
+            operation: 'OpenFile',
+            wrappedOp: 'open',
+            parameters: ['path', 'mode'],
+            expectedReturnValue: 'handle'
+        }, {
+            operation: 'CloseFile',
+            wrappedOp: 'close',
+            parameters: ['handle'],
+            expectedReturnValue: undefined
+        }, {
+            operation: 'DeleteFile',
+            wrappedOp: 'unlink',
+            parameters: ['path'],
+            expectedReturnValue: undefined
+        }, {
+            operation: 'ReadFile',
+            wrappedOp: 'read',
+            parameters: ['handle', 'buffer', 'offset', 'length', 'position'],
+            expectedReturnValue: 'results'
+        }, {
+            operation: 'WriteFile',
+            wrappedOp: 'write',
+            parameters: ['handle', 'buffer', 'offset', 'length', 'position'],
+            expectedReturnValue: 'results'
+        }, {
+            operation: 'WriteWholeFile',
+            wrappedOp: 'writeFile',
+            parameters: ['path', 'data', 'options'],
+            expectedReturnValue: 'results'
+        }, {
+            operation: 'Stat',
+            wrappedOp: 'fstat',
+            parameters: ['handle'],
+            expectedReturnValue: 'details'
+        }
+    ]
+        .forEach(({ operation, wrappedOp, parameters, expectedReturnValue }) => {
+            describe(`#${operation}`, () => {
+                it(`should asynchronously call fs.${wrappedOp}`, async () => {
+                    sandbox.mock(wrapper)
+                        .expects(wrappedOp)
+                        .withExactArgs(
+                            ...parameters,
+                            sinon.match.func
+                        )
+                        .once()
+                        .yields();
+
+                    await AsyncOps[operation](...parameters);
+
+                    sandbox.verify();
+                });
+
+                it(`should return the value ${expectedReturnValue} returned by fs.${wrappedOp}`, async () => {
+                    sandbox.stub(wrapper, wrappedOp).yields(null, expectedResult);
+
+                    assert.strictEqual(await AsyncOps[operation](...parameters), expectedResult);
+                });
+
+                it(`should throw an error if fs.${wrappedOp} fails`, async () => {
+                    sandbox.stub(wrapper, wrappedOp).yields(expectedError);
+
+                    try {
+                        await AsyncOps[operation](...parameters);
+                        assert.fail();
+                    } catch (error) {
+                        assert.strictEqual(error, expectedError);
+                    }
+                });
+            });
+        });
 
     describe('#SafeOpenFile', () => {
-        it('should asynchronously call AsyncOps.OpenFile');
-        it('should return the file handle returned by AsyncOps.OpenFile');
-        it('should return null if AsyncOps.OpenFile throws an error');
-    });
+        it('should asynchronously call AsyncOps.OpenFile', async () => {
+            sandbox.mock(AsyncOps)
+                .expects('OpenFile')
+                .withExactArgs('filename', 'mode')
+                .once();
 
-    describe('#CloseFile', () => {
-        it('should asynchronously call fs.close');
-        it('should return if fs.close completes');
-        it('should throw an error if fs.close fails');
-    });
+            await AsyncOps.SafeOpenFile('filename', 'mode');
 
-    describe('#DeleteFile', () => {
-    });
+            sandbox.verify();
+        });
 
-    describe('#ReadFile', () => {
-    });
+        it('should return the file handle returned by AsyncOps.OpenFile', async () => {
+            sandbox.stub(AsyncOps, 'OpenFile').returns(expectedResult);
 
-    describe('#WriteFile', () => {
-    });
+            assert.strictEqual(await AsyncOps.SafeOpenFile('filename', 'mode'), expectedResult);
+        });
 
-    describe('#WriteWholeFile', () => {
-    });
+        it('should return null if AsyncOps.OpenFile throws an error', async () => {
+            sandbox.stub(AsyncOps, 'OpenFile').throws(expectedError);
 
-    describe('#Stat', () => {
+            assert.strictEqual(await AsyncOps.SafeOpenFile('filename', 'mode'), null);
+        });
     });
 
     describe('#GetFileSize', () => {
+        it('should asynchronously call AsyncOps.Stat', async () => {
+            sandbox.mock(AsyncOps)
+                .expects('Stat')
+                .withExactArgs('handle')
+                .once()
+                .returns({
+                    size: 1234
+                });
+
+            await AsyncOps.GetFileSize('handle');
+
+            sandbox.verify();
+        });
+
+        it('should return the file handle returned by AsyncOps.Stat', async () => {
+            sandbox.stub(AsyncOps, 'Stat').returns({
+                size: 4567
+            });
+
+            assert.strictEqual(await AsyncOps.GetFileSize('handle'), 4567);
+        });
+
+        it('should throw an error if AsyncOps.Stat throws an error', async () => {
+            sandbox.stub(AsyncOps, 'Stat').throws(expectedError);
+
+            try {
+                await AsyncOps.GetFileSize('handle');
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(error, expectedError);
+            }
+        });
     });
 
     describe('#CreateDirectory', () => {
@@ -144,5 +285,37 @@ describe('#AsyncOps', () => {
     });
 
     describe('#WaitForTimeout', () => {
+        it('should call "setTimeout" with requested timeout in milliseconds', async () => {
+            sandbox.mock(wrapper)
+                .expects('setTimeout')
+                .once()
+                .withExactArgs(
+                    sinon.match.func,
+                    1234
+                )
+                .yields();
+
+            AsyncOps.WaitForTimeout(1234);
+        });
+
+        it('should return after the requested number of milliseconds has elapsed', (done) => {
+            (async () => {
+                await AsyncOps.WaitForTimeout(100);
+                done();
+            })();
+
+            clock.tick(100);
+        });
+
+        it('should throw an error if one occurs', async () => {
+            sandbox.stub(wrapper, 'setTimeout').throws(expectedError);
+
+            try {
+                await AsyncOps.WaitForTimeout(1234);
+                assert.fail();
+            } catch (error) {
+                assert.strictEqual(error, expectedError);
+            }
+        });
     });
 });
