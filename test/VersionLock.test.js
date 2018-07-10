@@ -6,7 +6,7 @@ const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 
 const AsyncOps = require('../src/helpers/AsyncOps');
-const { Reasons } = require('../src/OSError');
+const { OSError, Reasons } = require('../src/OSError');
 
 describe('#VersionLock', () => {
     let sandbox;
@@ -76,9 +76,43 @@ describe('#VersionLock', () => {
     });
 
     describe('#create', () => {
-        it('should convert the passed data to JSON');
-        it('should attempt to write the whole file');
-        it('should throw an OSError if the write operation fails');
+        let defaultData;
+        let defaultDataAsJson;
+
+        beforeEach(() => {
+            versionLock = new VersionLock();
+            defaultData = {
+                boolean: true,
+                number: 1234,
+                string: 'string'
+            };
+            defaultDataAsJson = JSON.stringify(defaultData);
+        });
+
+        it('should attempt to write the passed data as JSON', async () => {
+            sandbox.mock(AsyncOps)
+                .expects('WriteWholeFile')
+                .withExactArgs(
+                    versionLock.lockFilePath,
+                    defaultDataAsJson
+                )
+                .once();
+
+            await versionLock.create(defaultData);
+
+            sandbox.verify();
+        });
+
+        it('should throw an OSError if the write operation fails', async () => {
+            sandbox.stub(AsyncOps, 'WriteWholeFile').throws('threw an error');
+
+            try {
+                await versionLock.create(defaultData);
+                assert.fail();
+            } catch (error) {
+                assert.deepStrictEqual(error, new OSError(Reasons.LockCouldNotBeWritten));
+            }
+        });
     });
 
     describe('#getContents', () => {
