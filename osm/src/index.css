@@ -25,6 +25,12 @@ body {
   vertical-align: middle;
 }
 
+.store .name button {
+  padding: 0 8px 2px 0;
+
+  color: darkgray;
+}
+
 .store .actions {
   display: flex;
 }
