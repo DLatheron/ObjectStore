@@ -4,6 +4,10 @@ body {
   font-family: sans-serif;
 }
 
+.stores {
+  margin: 0px 20px 0px 20px;
+}
+
 .store {
   margin: 0;
   padding: 0;
@@ -12,14 +16,24 @@ body {
 }
 
 .store .id {
-  padding: 10px;
+  padding: 5px 10px 5px 10px;
+  vertical-align: middle;
 }
 
 .store .name {
-  padding: 10px;
+  padding: 5px 10px 5px 10px;
+  vertical-align: middle;
+}
+
+.store .actions {
+  display: flex;
 }
 
 .store button {
   padding: 10px;
-  margin: 5px;
+  margin: 0 0 0 5px;
+}
+
+.store hr {
+  color: white;
 }

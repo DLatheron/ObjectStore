@@ -39,7 +39,9 @@
     "mocha": "^5.2.0",
     "nyc": "^11.8.0",
     "proxyquire": "^2.0.1",
+    "react-edit-inline": "^1.0.8",
     "request": "^2.87.0",
+    "riek": "^1.1.0",
     "sinon": "^5.0.10"
   }
 }
