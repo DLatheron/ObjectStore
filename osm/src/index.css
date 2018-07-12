@@ -43,3 +43,32 @@ body {
 .store hr {
   color: white;
 }
+
+.store-delete-modal {
+  width: auto;
+  padding: 20px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  /* bring your own prefixes */
+  transform: translate(-50%, -50%);
+  background-color: papayawhip;
+}
+
+.store-delete-modal h1 {
+  font-size: 2em;
+  font-weight: bold;
+  text-align: center;
+}
+
+.store-delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #000000a0;
+}
+
+
+
