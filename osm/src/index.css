@@ -45,14 +45,62 @@ body {
 }
 
 .store-delete-modal {
-  width: auto;
+  border: 2px solid red;
+  border-radius: 10px;
+  width: 450px;
   padding: 20px;
+  padding-bottom: 0px;
   position: fixed;
   top: 50%;
   left: 50%;
   /* bring your own prefixes */
   transform: translate(-50%, -50%);
-  background-color: papayawhip;
+  background-color: white;
+}
+
+.store-delete-modal .close {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  width: 30px;
+  height: 30px;
+  background-color: red;
+  text-align: center;
+  vertical-align: middle;
+  border-radius: 15px;
+  color: white;
+  opacity: 1;
+}
+
+.store-delete-modal p {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.store-delete-modal .button-bar {
+  display: flex;
+  padding: 20px;
+  padding-top: 0px;
+}
+
+.store-delete-modal .deemphasize {
+  color: darkgray;
+}
+
+.store-delete-modal .btn {
+  display: inline-flex;
+  width: 100px;
+  height: 40px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.store-delete-modal .btn i,span {
+  text-align: center;
+  vertical-align: middle;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .store-delete-modal h1 {
