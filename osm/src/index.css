@@ -40,8 +40,21 @@ body {
   margin: 0 0 0 5px;
 }
 
+.store .btn-link {
+  margin: 0;
+}
+
 .store hr {
   color: white;
+}
+
+.store .icon img {
+  width: 32px;
+  height: 32px;
+}
+
+.store .icon {
+  vertical-align: middle;
 }
 
 .store-delete-modal {
