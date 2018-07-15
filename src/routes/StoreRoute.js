@@ -9,6 +9,11 @@ class StoreRoute {
     }
 
     initRoute() {
+        this.app.get(
+            '/stores',
+            this.getStores.bind(this)
+        );
+
         this.app.post(
             '/store/create',
             this.createStore.bind(this)
@@ -21,6 +26,21 @@ class StoreRoute {
             '/store/:storeId',
             this.deleteStore.bind(this)
         );
+    }
+
+    async getStores(_, response) {
+        const stores = await this.storeManager.listStores();
+        const results = {
+            stores: stores.map(store => ({
+                id: store,
+                name: 'Unknown',
+                icon: null
+            }))
+        };
+
+        response
+            .status(HttpStatus.OK)
+            .json(results);
     }
 
     async createStore(_, response) {
@@ -54,7 +74,9 @@ class StoreRoute {
 
             response.send(results);
         } else {
-            response.status(404).send('Unrecognised store id');
+            response
+                .status(HttpStatus.NOT_FOUND)
+                .send('Unrecognised store id');
         }
     }
 

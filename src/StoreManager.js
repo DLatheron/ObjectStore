@@ -1,6 +1,8 @@
 'use strict';
 
 const consola = require('consola');
+const klaw = require('klaw');
+const through2 = require('through2');
 const _ = require('lodash');
 
 const AsyncOps = require('./helpers/AsyncOps');
@@ -25,6 +27,36 @@ class StoreManager {
         return OSObjectHelper.IdToPath(storeId, this.options.storeHierarchy, this.options.pathSeparator) +
             storeId +
             this.options.pathSeparator;
+    }
+
+    async listStores() {
+        const storeRegex = /\/([0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12})$/i;
+
+        const onlyDirectories = through2.obj(function (item, enc, next) {
+            if (item.stats.isDirectory()) this.push(item);
+            next();
+        });
+
+        return await new Promise((resolve, reject) => {
+            const items = [];
+
+            klaw(this.options.basePath, {
+                depthLimit: 2
+            })
+                .pipe(onlyDirectories)
+                .on('data', item => {
+                    const match = item.path.match(storeRegex);
+                    if (match) {
+                        items.push(match[1]);
+                    }
+                })
+                .on('error', () => {
+                    reject();
+                })
+                .on('end', () => {
+                    resolve(items);
+                });
+        });
     }
 
     async createStore() {

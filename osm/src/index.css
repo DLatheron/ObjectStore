@@ -25,10 +25,21 @@ body {
 }
 
 .stores {
-  margin: 0px 0px 0px 0px;
+  margin: 0;
+}
+
+.objects {
+  margin: 0;
 }
 
 .store {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.object {
   margin: 0;
   padding: 0;
   text-align: left;
@@ -40,7 +51,17 @@ body {
   vertical-align: middle;
 }
 
+.object .id {
+  padding: 5px 10px 5px 10px;
+  vertical-align: middle;
+}
+
 .store .name {
+  padding: 5px 10px 5px 10px;
+  vertical-align: middle;
+}
+
+.object .name {
   padding: 5px 10px 5px 10px;
   vertical-align: middle;
 }
@@ -55,7 +76,16 @@ body {
   display: flex;
 }
 
+.object .actions {
+  display: flex;
+}
+
 .store button {
+  padding: 10px;
+  margin: 0 0 0 5px;
+}
+
+.object button {
   padding: 10px;
   margin: 0 0 0 5px;
 }
@@ -64,7 +94,15 @@ body {
   margin: 0;
 }
 
+.object .btn-link {
+  margin: 0;
+}
+
 .store hr {
+  color: white;
+}
+
+.object hr {
   color: white;
 }
 
@@ -73,11 +111,20 @@ body {
   height: 32px;
 }
 
+.object .icon img {
+  width: 32px;
+  height: 32px;
+}
+
 .store .icon {
   vertical-align: middle;
 }
 
-.store-delete-modal {
+.object .icon {
+  vertical-align: middle;
+}
+
+.delete-modal {
   border: 2px solid red;
   border-radius: 10px;
   width: 450px;
@@ -91,7 +138,7 @@ body {
   background-color: white;
 }
 
-.store-delete-modal .close {
+.delete-modal .close {
   position: absolute;
   top: -15px;
   right: -15px;
@@ -105,23 +152,23 @@ body {
   opacity: 1;
 }
 
-.store-delete-modal p {
+.delete-modal p {
   text-align: center;
   margin-left: auto;
   margin-right: auto;
 }
 
-.store-delete-modal .button-bar {
+.delete-modal .button-bar {
   display: flex;
   padding: 20px;
   padding-top: 0px;
 }
 
-.store-delete-modal .deemphasize {
+.delete-modal .deemphasize {
   color: darkgray;
 }
 
-.store-delete-modal .btn {
+.delete-modal .btn {
   display: inline-flex;
   width: 100px;
   height: 40px;
@@ -129,20 +176,20 @@ body {
   margin-right: auto;
 }
 
-.store-delete-modal .btn i,span {
+.delete-modal .btn i,span {
   text-align: center;
   vertical-align: middle;
   margin-left: auto;
   margin-right: auto;
 }
 
-.store-delete-modal h1 {
+.delete-modal h1 {
   font-size: 2em;
   font-weight: bold;
   text-align: center;
 }
 
-.store-delete-modal-overlay {
+.delete-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
