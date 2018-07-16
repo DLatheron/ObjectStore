@@ -12,6 +12,7 @@ const _fsUnlink = promisify(fs.unlink);
 const _fsRead = promisify(fs.read);
 const _fsWrite = promisify(fs.write);
 const _fsWriteFile = promisify(fs.writeFile);
+const _fsReadFile = promisify(fs.readFile);
 const _fsFstat = promisify(fs.fstat);
 const _mkdirp = promisify(require('mkdirp'));
 const _fsExists = promisify(fs.exists);
@@ -35,6 +36,9 @@ const AsyncOps = {
     },
     ReadFile: async (fd, buffer, offset, length, position) => {
         return await _fsRead(fd, buffer, offset, length, position);
+    },
+    ReadWholeFile: async (path, options) => {
+        return await _fsReadFile(path, options);
     },
     WriteFile: async (fd, buffer, offset, length, position) => {
         return await _fsWrite(fd, buffer, offset, length, position);

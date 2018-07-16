@@ -25,8 +25,15 @@ class Store {
             this.options.pathSeparator;
     }
 
+    async createStoreObject() {
+        return this._createObject(this.storeId);
+    }
+
     async createObject() {
-        const objectId = OSObjectHelper.GenerateId();
+        return this._createObject(OSObjectHelper.GenerateId());
+    }
+
+    async _createObject(objectId) {
         const fullPath = this.basePath + this.buildObjectPath(objectId);
 
         if (!await AsyncOps.CreateDirectory(fullPath)) {

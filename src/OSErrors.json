@@ -43,6 +43,11 @@
             "additionalReasonDataSeparator": ", ",
             "description": "The content or metadata could not be written - you will be given a special update key in order to retry."
         },
+        "MetadataIsCorrupt": {
+            "message": "The metadata associated with an object is corrupt - StoreId: ${storeId}, ObjectId: ${objectId}",
+            "category": "TransitoryFailure",
+            "description": "The metadata was corrupt - please contact your administrator."
+        },
         "DirectoryFailure": {
             "message": "An error occurred whilst attempting to create a directory for the object",
             "category": "TransitoryFailure",

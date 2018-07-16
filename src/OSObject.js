@@ -102,6 +102,37 @@ class OSObject {
         };
     }
 
+    async getMetadata() {
+        const versionLock = new VersionLock(this.basePath);
+        let lockContents;
+
+        try {
+            lockContents = await versionLock.getContents();
+        } catch (error) {
+            error.additionalData = {
+                storeId: this.storeId,
+                objectId: this.objectId
+            };
+            throw error;
+        }
+
+        const version = (lockContents.latestVersion - 1);
+
+        const metadataFilename = this._buildMetadataPath(version);
+        const metadata = await AsyncOps.ReadWholeFile(metadataFilename, {
+            encoding: 'utf8'
+        });
+
+        try {
+            return JSON.parse(metadata);
+        } catch (error) {
+            throw new OSError(Reasons.MetadataIsCorrupt, {
+                storeId: this.storeId,
+                objectId: this.objectId
+            });
+        }
+    }
+
     // TODO: What functions do we need?
     // - Get the current version;
     // - Get a version;

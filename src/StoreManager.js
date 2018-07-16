@@ -29,6 +29,12 @@ class StoreManager {
             this.options.pathSeparator;
     }
 
+    async getMetadata(storeId) {
+        const store = await this.getStore(storeId);
+        const osObject = await store.getObject(storeId);
+        return osObject.getMetadata();
+    }
+
     async listStores() {
         const storeRegex = /\/([0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12})$/i;
 
@@ -37,17 +43,21 @@ class StoreManager {
             next();
         });
 
-        return await new Promise((resolve, reject) => {
+        return await new Promise(async (resolve, reject) => {
             const items = [];
+
+            // TODO: This is not efficient - would be better to get all of these
 
             klaw(this.options.basePath, {
                 depthLimit: 2
             })
                 .pipe(onlyDirectories)
-                .on('data', item => {
+                .on('data', (item) => {
                     const match = item.path.match(storeRegex);
                     if (match) {
-                        items.push(match[1]);
+                        const storeId = match[1];
+
+                        items.push(storeId);
                     }
                 })
                 .on('error', () => {
@@ -56,15 +66,30 @@ class StoreManager {
                 .on('end', () => {
                     resolve(items);
                 });
+        }).then(async (storeIds) => {
+            // TODO: Await is non-optimal.
+            const storeMetadata = await Promise.all(storeIds.map(async (storeId) => {
+                return Object.assign(
+                    {},
+                    { id: storeId },
+                    await this.getMetadata(storeId)
+                );
+            }));
+
+            return storeMetadata;
         });
     }
 
-    async createStore() {
+    async createStore(metadata) {
         const storeId = OSObjectHelper.GenerateId();
         const storePath = this.options.basePath + this.buildStorePath(storeId);
 
         if (await AsyncOps.CreateDirectory(storePath)) {
-            return new Store(storeId, storePath, this.options);
+            const store = new Store(storeId, storePath, this.options);
+            const storeObject = await store.createStoreObject();
+            const results = await storeObject.updateObject(null, metadata);
+
+            return results;
         }
     }
 

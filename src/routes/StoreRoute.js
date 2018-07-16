@@ -31,11 +31,7 @@ class StoreRoute {
     async getStores(_, response) {
         const stores = await this.storeManager.listStores();
         const results = {
-            stores: stores.map(store => ({
-                id: store,
-                name: 'Unknown',
-                icon: null
-            }))
+            stores
         };
 
         response
@@ -43,10 +39,15 @@ class StoreRoute {
             .json(results);
     }
 
-    async createStore(_, response) {
-        // TODO: Check that we are able to create a store - by validating a pass token.
+    async createStore(request, response) {
+        // TODO: Check that we are able to create a store - by validating a passed token.
 
-        const store = await this.storeManager.createStore();
+        const metadata = request.body;
+
+        // TODO: Validate the metadata is acceptable for creating the store:
+        // - contains a valid 'name';
+
+        const store = await this.storeManager.createStore(metadata);
         if (store) {
             const results = {
                 storeId: store.storeId
