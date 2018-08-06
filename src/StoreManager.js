@@ -6,6 +6,7 @@ const through2 = require('through2');
 const _ = require('lodash');
 
 const AsyncOps = require('./helpers/AsyncOps');
+const { Reasons, OSError } = require('./OSError');
 const OSObjectHelper = require('./helpers/OSObjectHelper');
 const Store = require('./Store');
 
@@ -84,12 +85,18 @@ class StoreManager {
         const storeId = OSObjectHelper.GenerateId();
         const storePath = this.options.basePath + this.buildStorePath(storeId);
 
-        if (await AsyncOps.CreateDirectory(storePath)) {
-            const store = new Store(storeId, storePath, this.options);
-            const storeObject = await store.createStoreObject();
-            const results = await storeObject.updateObject(null, metadata);
+        try {
+            if (await AsyncOps.CreateDirectory(storePath)) {
+                const store = new Store(storeId, storePath, this.options);
+                const storeObject = await store.createStoreObject();
+                const results = await storeObject.updateObject(null, metadata);
 
-            return results;
+                return results;
+            } else {
+                throw new OSError(Reasons.DirectoryFailure);
+            }
+        } catch (error) {
+            throw error;
         }
     }
 
